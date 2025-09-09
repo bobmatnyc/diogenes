@@ -5,7 +5,7 @@ import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 import { estimateMessagesTokens, calculateCost, estimateTokens } from '@/lib/tokens';
 import { TokenUsage } from '@/types/chat';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
