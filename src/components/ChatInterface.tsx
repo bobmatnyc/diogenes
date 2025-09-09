@@ -32,52 +32,20 @@ export default function ChatInterface() {
       content: msg.content,
     })),
     onFinish: (message) => {
-      // After receiving the assistant's response, save both user and assistant messages
-      // The messages array now contains both
-      const allMessages = messages;
-      
-      // Find the last user message (should be second to last in the array)
-      const userMsgIndex = allMessages.length - 1;
-      if (userMsgIndex >= 0) {
-        const userMsg = allMessages[userMsgIndex];
-        if (userMsg && userMsg.role === 'user') {
-          // Calculate and save user message with tokens
-          const userTokens = estimateTokens(userMsg.content);
-          const userMessage: Message = {
-            id: userMsg.id,
-            role: 'user',
-            content: userMsg.content,
-            timestamp: new Date(),
-            tokenUsage: {
-              promptTokens: userTokens,
-              completionTokens: 0,
-              totalTokens: userTokens,
-              cost: calculateCost(userTokens, 0),
-            },
-          };
-          
-          setLocalMessages(prev => {
-            const exists = prev.some(m => m.id === userMsg.id);
-            if (!exists) {
-              const updated = [...prev, userMessage];
-              setSession(currentSession => addMessageToSession(currentSession, userMessage));
-              return updated;
-            }
-            return prev;
-          });
-        }
-      }
-      
-      // Calculate and save assistant message with tokens
+      // Calculate tokens for the assistant message
       const completionTokens = estimateTokens(message.content);
-      const promptTokens = estimateMessagesTokens(allMessages.map(m => ({
+      
+      // Estimate prompt tokens based on all messages in the conversation
+      // We need to include all previous messages plus the latest user message
+      const allMessagesForTokens = [...messages, message];
+      const promptTokens = estimateMessagesTokens(allMessagesForTokens.slice(0, -1).map(m => ({
         role: m.role,
         content: m.content
       })));
       
       const assistantMessage: Message = {
         id: message.id,
-        role: message.role as 'assistant',
+        role: 'assistant',
         content: message.content,
         timestamp: new Date(),
         tokenUsage: {
@@ -88,17 +56,48 @@ export default function ChatInterface() {
         },
       };
       
+      // Save assistant message to local state and session
       setLocalMessages(prev => {
-        const exists = prev.some(m => m.id === message.id);
-        if (!exists) {
-          const updated = [...prev, assistantMessage];
-          setSession(currentSession => addMessageToSession(currentSession, assistantMessage));
-          return updated;
-        }
-        return prev;
+        const updated = [...prev, assistantMessage];
+        return updated;
+      });
+      
+      // Update session storage
+      setSession(currentSession => {
+        const updatedSession = addMessageToSession(currentSession, assistantMessage);
+        return updatedSession;
       });
     },
   });
+  
+  // Handle form submission to save user messages
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (input.trim()) {
+      // Create user message with token tracking
+      const userTokens = estimateTokens(input);
+      const userMessage: Message = {
+        id: generateMessageId(),
+        role: 'user',
+        content: input,
+        timestamp: new Date(),
+        tokenUsage: {
+          promptTokens: userTokens,
+          completionTokens: 0,
+          totalTokens: userTokens,
+          cost: calculateCost(userTokens, 0),
+        },
+      };
+      
+      // Save user message to local state and session
+      setLocalMessages(prev => [...prev, userMessage]);
+      setSession(currentSession => addMessageToSession(currentSession, userMessage));
+    }
+    
+    // Call the original handleSubmit
+    handleSubmit(e);
+  };
 
   // Initialize messages from session on mount
   useEffect(() => {
@@ -220,7 +219,7 @@ export default function ChatInterface() {
 
       {/* Input Form */}
       <div className="max-w-4xl mx-auto w-full">
-        <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t">
+        <form onSubmit={handleFormSubmit} className="flex gap-2 p-4 border-t">
           <input
             type="text"
             value={input}
