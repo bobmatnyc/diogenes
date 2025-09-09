@@ -6,11 +6,9 @@
   "framework": "nextjs",
   "functions": {
     "src/app/api/chat/route.ts": {
-      "runtime": "edge",
       "maxDuration": 30
     },
     "src/app/api/test-stream/route.ts": {
-      "runtime": "edge",
       "maxDuration": 10
     }
   }
