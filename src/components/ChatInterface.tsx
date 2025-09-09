@@ -24,7 +24,7 @@ export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
     api: '/api/chat',
     initialMessages: session.messages.map(msg => ({
       id: msg.id,
@@ -32,35 +32,70 @@ export default function ChatInterface() {
       content: msg.content,
     })),
     onFinish: (message) => {
-      // Estimate token usage for the assistant message
+      // After receiving the assistant's response, save both user and assistant messages
+      // The messages array now contains both
+      const allMessages = messages;
+      
+      // Find the last user message (should be second to last in the array)
+      const userMsgIndex = allMessages.length - 1;
+      if (userMsgIndex >= 0) {
+        const userMsg = allMessages[userMsgIndex];
+        if (userMsg && userMsg.role === 'user') {
+          // Calculate and save user message with tokens
+          const userTokens = estimateTokens(userMsg.content);
+          const userMessage: Message = {
+            id: userMsg.id,
+            role: 'user',
+            content: userMsg.content,
+            timestamp: new Date(),
+            tokenUsage: {
+              promptTokens: userTokens,
+              completionTokens: 0,
+              totalTokens: userTokens,
+              cost: calculateCost(userTokens, 0),
+            },
+          };
+          
+          setLocalMessages(prev => {
+            const exists = prev.some(m => m.id === userMsg.id);
+            if (!exists) {
+              const updated = [...prev, userMessage];
+              setSession(currentSession => addMessageToSession(currentSession, userMessage));
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }
+      
+      // Calculate and save assistant message with tokens
       const completionTokens = estimateTokens(message.content);
-      const promptTokens = estimateMessagesTokens(messages.map(m => ({
+      const promptTokens = estimateMessagesTokens(allMessages.map(m => ({
         role: m.role,
         content: m.content
       })));
       
-      const tokenUsage: TokenUsage = {
-        promptTokens: promptTokens,
-        completionTokens: completionTokens,
-        totalTokens: promptTokens + completionTokens,
-        cost: calculateCost(promptTokens, completionTokens),
-      };
-      
-      const newMessage: Message = {
+      const assistantMessage: Message = {
         id: message.id,
         role: message.role as 'assistant',
         content: message.content,
         timestamp: new Date(),
-        tokenUsage: tokenUsage,
+        tokenUsage: {
+          promptTokens: promptTokens,
+          completionTokens: completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          cost: calculateCost(promptTokens, completionTokens),
+        },
       };
       
-      // Add to local messages state
-      setLocalMessages(prev => [...prev, newMessage]);
-      
-      // Update session with the new message
-      setSession(currentSession => {
-        const updatedSession = addMessageToSession(currentSession, newMessage);
-        return updatedSession;
+      setLocalMessages(prev => {
+        const exists = prev.some(m => m.id === message.id);
+        if (!exists) {
+          const updated = [...prev, assistantMessage];
+          setSession(currentSession => addMessageToSession(currentSession, assistantMessage));
+          return updated;
+        }
+        return prev;
       });
     },
   });
@@ -97,45 +132,16 @@ export default function ChatInterface() {
     }
   }, [isInitialized, session.messages, setMessages]);
 
+  // Monitor messages changes for debugging (can be removed in production)
+  useEffect(() => {
+    // Uncomment for debugging:
+    // console.log('Messages state updated:', messages);
+  }, [messages]);
+
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    
-    const message = input.trim();
-    
-    // Calculate token usage for user message
-    const userTokens = estimateTokens(message);
-    const userTokenUsage: TokenUsage = {
-      promptTokens: userTokens,
-      completionTokens: 0,
-      totalTokens: userTokens,
-      cost: calculateCost(userTokens, 0),
-    };
-    
-    const userMessage: Message = {
-      id: generateMessageId(),
-      role: 'user',
-      content: message,
-      timestamp: new Date(),
-      tokenUsage: userTokenUsage,
-    };
-    
-    // Add to local messages state
-    setLocalMessages(prev => [...prev, userMessage]);
-    
-    // Update session with user message
-    setSession(currentSession => {
-      const updatedSession = addMessageToSession(currentSession, userMessage);
-      return updatedSession;
-    });
-    
-    // Use the built-in chat hook submit
-    handleSubmit(e);
-  };
 
   const handleNewConversation = () => {
     if (confirm('Start a new conversation? Current conversation will be cleared.')) {
@@ -143,6 +149,7 @@ export default function ChatInterface() {
       const newSession = createNewSession();
       setSession(newSession);
       setMessages([]);
+      setLocalMessages([]);
       setIsInitialized(false);
       window.location.reload();
     }
@@ -179,7 +186,7 @@ export default function ChatInterface() {
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto">
-          {messages.map((message, index) => {
+          {messages.map((message) => {
             // Find the corresponding local message for token usage
             const localMessage = localMessages.find(m => m.id === message.id);
             
@@ -213,7 +220,7 @@ export default function ChatInterface() {
 
       {/* Input Form */}
       <div className="max-w-4xl mx-auto w-full">
-        <form onSubmit={handleSendMessage} className="flex gap-2 p-4 border-t">
+        <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t">
           <input
             type="text"
             value={input}

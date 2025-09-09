@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Get fresh client instance to ensure latest env vars
     const openrouter = getOpenRouterClient();
+    
     const response = await openrouter.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: allMessages,
