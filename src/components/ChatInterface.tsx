@@ -1,44 +1,34 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useChat } from 'ai/react';
 import MessageBubble from './MessageBubble';
-import InputForm from './InputForm';
 import TokenMetrics from './TokenMetrics';
-import { Message, TokenUsage } from '@/types/chat';
-import {
-  getSession,
-  createNewSession,
+import { 
+  getSession, 
+  createNewSession, 
   addMessageToSession,
-  generateMessageId,
-  clearSession,
-  updateMessageTokenUsage,
+  clearSession
 } from '@/lib/session';
 import { getRandomStarter } from '@/lib/prompts/core-principles';
 import { isDevelopment } from '@/lib/env';
 import { estimateTokens, calculateCost, estimateMessagesTokens } from '@/lib/tokens';
+import { Message } from '@/types/chat';
 
 export default function ChatInterface() {
-  const [session, setSession] = useState(() => getSession() || createNewSession());
-  const [isInitialized, setIsInitialized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
-
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+  
+  // Initialize session
+  const session = getSession() || createNewSession();
+  
+  // Use the useChat hook with minimal configuration
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     api: '/api/chat',
-    initialMessages: session.messages.map(msg => ({
-      id: msg.id,
-      role: msg.role as 'user' | 'assistant',
-      content: msg.content,
-    })),
     onFinish: (message) => {
-      // Calculate tokens for the assistant message
+      // Save the assistant response to session
       const completionTokens = estimateTokens(message.content);
-      
-      // Estimate prompt tokens based on all messages in the conversation
-      // We need to include all previous messages plus the latest user message
-      const allMessagesForTokens = [...messages, message];
-      const promptTokens = estimateMessagesTokens(allMessagesForTokens.slice(0, -1).map(m => ({
+      const allMessages = [...messages, message];
+      const promptTokens = estimateMessagesTokens(allMessages.slice(0, -1).map(m => ({
         role: m.role,
         content: m.content
       })));
@@ -56,29 +46,53 @@ export default function ChatInterface() {
         },
       };
       
-      // Save assistant message to local state and session
-      setLocalMessages(prev => {
-        const updated = [...prev, assistantMessage];
-        return updated;
-      });
-      
-      // Update session storage
-      setSession(currentSession => {
-        const updatedSession = addMessageToSession(currentSession, assistantMessage);
-        return updatedSession;
-      });
+      // Save to session
+      const currentSession = getSession() || createNewSession();
+      addMessageToSession(currentSession, assistantMessage);
     },
   });
-  
-  // Handle form submission to save user messages
+
+  // Add welcome message on first load
+  useEffect(() => {
+    const currentSession = getSession();
+    if (!currentSession || currentSession.messages.length === 0) {
+      const welcomeMessage = {
+        id: Date.now().toString(),
+        role: 'assistant' as const,
+        content: getRandomStarter(),
+      };
+      append(welcomeMessage);
+      
+      // Save welcome message to session
+      const newSession = createNewSession();
+      addMessageToSession(newSession, {
+        ...welcomeMessage,
+        timestamp: new Date(),
+      });
+    }
+  }, [append]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleNewConversation = () => {
+    if (confirm('Start a new conversation? Current conversation will be cleared.')) {
+      clearSession();
+      window.location.reload();
+    }
+  };
+
+  // Custom submit handler to track user messages
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (input.trim()) {
-      // Create user message with token tracking
+      // Save user message to session
       const userTokens = estimateTokens(input);
       const userMessage: Message = {
-        id: generateMessageId(),
+        id: Date.now().toString(),
         role: 'user',
         content: input,
         timestamp: new Date(),
@@ -90,69 +104,16 @@ export default function ChatInterface() {
         },
       };
       
-      // Save user message to local state and session
-      setLocalMessages(prev => [...prev, userMessage]);
-      setSession(currentSession => addMessageToSession(currentSession, userMessage));
+      const currentSession = getSession() || createNewSession();
+      addMessageToSession(currentSession, userMessage);
     }
     
     // Call the original handleSubmit
     handleSubmit(e);
   };
 
-  // Initialize messages from session on mount
-  useEffect(() => {
-    if (!isInitialized) {
-      if (session.messages.length === 0) {
-        // Create welcome message for new sessions
-        const welcomeMessage: Message = {
-          id: generateMessageId(),
-          role: 'assistant',
-          content: getRandomStarter(),
-          timestamp: new Date(),
-        };
-        const updatedSession = addMessageToSession(session, welcomeMessage);
-        setSession(updatedSession);
-        setLocalMessages([welcomeMessage]);
-        setMessages([{
-          id: welcomeMessage.id,
-          role: 'assistant',
-          content: welcomeMessage.content,
-        }]);
-      } else {
-        // Load existing messages from session
-        setLocalMessages(session.messages);
-        setMessages(session.messages.map(msg => ({
-          id: msg.id,
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content,
-        })));
-      }
-      setIsInitialized(true);
-    }
-  }, [isInitialized, session.messages, setMessages]);
-
-  // Monitor messages changes for debugging (can be removed in production)
-  useEffect(() => {
-    // Uncomment for debugging:
-    // console.log('Messages state updated:', messages);
-  }, [messages]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleNewConversation = () => {
-    if (confirm('Start a new conversation? Current conversation will be cleared.')) {
-      clearSession();
-      const newSession = createNewSession();
-      setSession(newSession);
-      setMessages([]);
-      setLocalMessages([]);
-      setIsInitialized(false);
-      window.location.reload();
-    }
-  };
+  // Get current session for token metrics
+  const currentSession = getSession() || createNewSession();
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -171,7 +132,7 @@ export default function ChatInterface() {
             <p className="text-sm opacity-90">The Digital Cynic</p>
           </div>
           <div className="flex items-center gap-4">
-            <TokenMetrics session={session} />
+            <TokenMetrics session={currentSession} />
             <button
               onClick={handleNewConversation}
               className="px-4 py-2 bg-diogenes-secondary hover:bg-diogenes-accent rounded-lg transition-colors"
@@ -185,23 +146,17 @@ export default function ChatInterface() {
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto">
-          {messages.map((message) => {
-            // Find the corresponding local message for token usage
-            const localMessage = localMessages.find(m => m.id === message.id);
-            
-            return (
-              <MessageBubble
-                key={message.id}
-                message={{
-                  id: message.id,
-                  role: message.role as 'user' | 'assistant',
-                  content: message.content,
-                  timestamp: localMessage?.timestamp || new Date(),
-                  tokenUsage: localMessage?.tokenUsage,
-                }}
-              />
-            );
-          })}
+          {messages.map((message) => (
+            <MessageBubble
+              key={message.id}
+              message={{
+                id: message.id,
+                role: message.role as 'user' | 'assistant',
+                content: message.content,
+                timestamp: new Date(),
+              }}
+            />
+          ))}
           {isLoading && (
             <div className="flex justify-start mb-4">
               <div className="bg-gray-200 dark:bg-gray-700 px-4 py-3 rounded-lg">
