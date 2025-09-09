@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Allow API routes and login page to be accessed without auth
+  // In development mode, allow all requests
+  if (process.env.NODE_ENV === 'development') {
+    // Auto-redirect root to chat in development
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Production mode: Allow API routes and login page to be accessed without auth
   if (
     request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname === '/login'

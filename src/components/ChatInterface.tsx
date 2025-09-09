@@ -13,6 +13,7 @@ import {
   clearSession,
 } from '@/lib/session';
 import { getRandomStarter } from '@/lib/prompts/core-principles';
+import { isDevelopment } from '@/lib/env';
 
 export default function ChatInterface() {
   const [session, setSession] = useState(() => getSession() || createNewSession());
@@ -92,6 +93,13 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Development Mode Banner */}
+      {isDevelopment() && (
+        <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
+          Development Mode - Authentication Bypassed
+        </div>
+      )}
+      
       {/* Header */}
       <div className="bg-diogenes-primary text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">

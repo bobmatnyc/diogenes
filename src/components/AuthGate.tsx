@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
+import { isAuthenticated, login } from '@/lib/auth';
+import { isDevelopment } from '@/lib/env';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -15,6 +16,18 @@ export default function AuthGate({ children }: AuthGateProps) {
 
   useEffect(() => {
     const checkAuth = () => {
+      // In development mode, auto-authenticate
+      if (isDevelopment()) {
+        // Auto-login if not already authenticated
+        if (!isAuthenticated()) {
+          login(''); // Password doesn't matter in dev mode
+        }
+        setIsAuthed(true);
+        setIsChecking(false);
+        return;
+      }
+
+      // Production mode - normal authentication flow
       const authenticated = isAuthenticated();
       setIsAuthed(authenticated);
       setIsChecking(false);
@@ -26,10 +39,15 @@ export default function AuthGate({ children }: AuthGateProps) {
 
     checkAuth();
     
-    // Check auth status periodically
-    const interval = setInterval(checkAuth, 60000); // Check every minute
+    // Check auth status periodically (only in production)
+    let interval: NodeJS.Timeout | null = null;
+    if (!isDevelopment()) {
+      interval = setInterval(checkAuth, 60000); // Check every minute
+    }
     
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [router]);
 
   if (isChecking) {
