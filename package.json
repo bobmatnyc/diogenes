@@ -14,11 +14,11 @@
     "axios": "^1.11.0",
     "js-tiktoken": "^1.0.21",
     "jsdom": "^26.1.0",
-    "next": "15.1.0",
+    "next": "^15.5.2",
     "openai": "^4.79.0",
     "playwright": "^1.55.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
