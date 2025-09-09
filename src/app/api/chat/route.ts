@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert the response to a stream using Vercel AI SDK's OpenAIStream
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response as any);
     
     // Return a StreamingTextResponse which handles the proper formatting
     return new StreamingTextResponse(stream, { headers });
