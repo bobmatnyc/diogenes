@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { StreamingTextResponse } from 'ai';
 import { openrouter, DEFAULT_MODEL } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
+import { estimateMessagesTokens, calculateCost, estimateTokens } from '@/lib/tokens';
+import { TokenUsage } from '@/types/chat';
 
 export const runtime = 'edge';
 
@@ -23,6 +25,9 @@ export async function POST(req: NextRequest) {
     const userMessages = messages.filter((m: any) => m.role !== 'system');
     const allMessages = [systemMessage, ...userMessages];
 
+    // Estimate prompt tokens before making the request
+    const estimatedPromptTokens = estimateMessagesTokens(allMessages);
+
     const response = await openrouter.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: allMessages,
@@ -31,21 +36,60 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
 
+    // Variables to track the response and token usage
+    let fullContent = '';
+    let tokenUsage: TokenUsage | null = null;
+
     // Convert the OpenAI SDK stream to a ReadableStream for the StreamingTextResponse
     const stream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of response) {
-          const content = chunk.choices[0]?.delta?.content;
-          if (content) {
-            controller.enqueue(new TextEncoder().encode(content));
+        try {
+          for await (const chunk of response) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              controller.enqueue(new TextEncoder().encode(content));
+            }
+            
+            // Check for usage data in the final chunk
+            if (chunk.usage) {
+              tokenUsage = {
+                promptTokens: chunk.usage.prompt_tokens || estimatedPromptTokens,
+                completionTokens: chunk.usage.completion_tokens || 0,
+                totalTokens: chunk.usage.total_tokens || 0,
+                cost: 0
+              };
+              tokenUsage.cost = calculateCost(tokenUsage.promptTokens, tokenUsage.completionTokens);
+            }
           }
+          
+          // If we didn't get usage data from the stream, estimate it
+          if (!tokenUsage) {
+            const completionTokens = estimateTokens(fullContent);
+            tokenUsage = {
+              promptTokens: estimatedPromptTokens,
+              completionTokens: completionTokens,
+              totalTokens: estimatedPromptTokens + completionTokens,
+              cost: calculateCost(estimatedPromptTokens, completionTokens)
+            };
+          }
+          
+          // Send token usage as a special data chunk at the end
+          const tokenData = JSON.stringify({ tokenUsage });
+          controller.enqueue(new TextEncoder().encode(`\n##TOKEN_USAGE##${tokenData}##END_TOKEN_USAGE##`));
+          
+        } catch (error) {
+          console.error('Stream processing error:', error);
+        } finally {
+          controller.close();
         }
-        controller.close();
       },
     });
     
-    // Return a StreamingTextResponse, which can be consumed by the client
-    return new StreamingTextResponse(stream);
+    // Return a StreamingTextResponse with custom headers for token usage
+    const streamingResponse = new StreamingTextResponse(stream);
+    
+    return streamingResponse;
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(

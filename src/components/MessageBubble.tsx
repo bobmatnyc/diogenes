@@ -1,6 +1,7 @@
 'use client';
 
 import { Message } from '@/types/chat';
+import MessageTokenBadge from './MessageTokenBadge';
 
 interface MessageBubbleProps {
   message: Message;
@@ -22,8 +23,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           {isUser ? 'You' : 'Diogenes'}
         </div>
         <div className="whitespace-pre-wrap break-words">{message.content}</div>
-        <div className="text-xs mt-2 opacity-70">
-          {new Date(message.timestamp).toLocaleTimeString()}
+        <div className="flex items-center justify-between mt-2">
+          <div className="text-xs opacity-70">
+            {new Date(message.timestamp).toLocaleTimeString()}
+          </div>
+          <MessageTokenBadge tokenUsage={message.tokenUsage} role={message.role} />
         </div>
       </div>
     </div>

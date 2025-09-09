@@ -1,4 +1,5 @@
-import { ChatSession, Message } from '@/types/chat';
+import { ChatSession, Message, TokenUsage } from '@/types/chat';
+import { estimateTokens, calculateCost } from './tokens';
 
 const SESSION_KEY = 'chat_session';
 
@@ -25,6 +26,31 @@ export function getSession(): ChatSession | null {
       ...msg,
       timestamp: new Date(msg.timestamp)
     }));
+    
+    // Migrate old sessions without token tracking
+    if (session.totalTokens === undefined) {
+      session.totalTokens = 0;
+      session.totalCost = 0;
+      
+      // Calculate tokens for existing messages
+      for (const message of session.messages) {
+        if (!message.tokenUsage) {
+          const tokens = estimateTokens(message.content);
+          message.tokenUsage = {
+            promptTokens: message.role === 'user' ? tokens : 0,
+            completionTokens: message.role === 'assistant' ? tokens : 0,
+            totalTokens: tokens,
+            cost: calculateCost(
+              message.role === 'user' ? tokens : 0,
+              message.role === 'assistant' ? tokens : 0
+            )
+          };
+        }
+        session.totalTokens += message.tokenUsage.totalTokens;
+        session.totalCost += message.tokenUsage.cost;
+      }
+    }
+    
     return session;
   } catch (error) {
     console.error('Failed to parse session:', error);
@@ -44,16 +70,61 @@ export function createNewSession(): ChatSession {
     id: generateSessionId(),
     messages: [],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    totalTokens: 0,
+    totalCost: 0
   };
 }
 
 export function addMessageToSession(session: ChatSession, message: Message): ChatSession {
+  // If message doesn't have token usage, estimate it
+  if (!message.tokenUsage) {
+    const tokens = estimateTokens(message.content);
+    message.tokenUsage = {
+      promptTokens: message.role === 'user' ? tokens : 0,
+      completionTokens: message.role === 'assistant' ? tokens : 0,
+      totalTokens: tokens,
+      cost: calculateCost(
+        message.role === 'user' ? tokens : 0,
+        message.role === 'assistant' ? tokens : 0
+      )
+    };
+  }
+  
   const updatedSession = {
     ...session,
     messages: [...session.messages, message],
+    updatedAt: new Date(),
+    totalTokens: session.totalTokens + (message.tokenUsage?.totalTokens || 0),
+    totalCost: session.totalCost + (message.tokenUsage?.cost || 0)
+  };
+  saveSession(updatedSession);
+  return updatedSession;
+}
+
+export function updateMessageTokenUsage(session: ChatSession, messageId: string, tokenUsage: TokenUsage): ChatSession {
+  const messageIndex = session.messages.findIndex(m => m.id === messageId);
+  if (messageIndex === -1) return session;
+  
+  const oldTokenUsage = session.messages[messageIndex].tokenUsage;
+  const updatedMessages = [...session.messages];
+  updatedMessages[messageIndex] = {
+    ...updatedMessages[messageIndex],
+    tokenUsage
+  };
+  
+  // Update session totals
+  const tokenDiff = tokenUsage.totalTokens - (oldTokenUsage?.totalTokens || 0);
+  const costDiff = tokenUsage.cost - (oldTokenUsage?.cost || 0);
+  
+  const updatedSession = {
+    ...session,
+    messages: updatedMessages,
+    totalTokens: session.totalTokens + tokenDiff,
+    totalCost: session.totalCost + costDiff,
     updatedAt: new Date()
   };
+  
   saveSession(updatedSession);
   return updatedSession;
 }
