@@ -38,10 +38,6 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
 
-    // Variables to track the response and token usage
-    let fullContent = '';
-    let tokenUsage: TokenUsage | null = null;
-
     // Convert the OpenAI SDK stream to a ReadableStream for the StreamingTextResponse
     const stream = new ReadableStream({
       async start(controller) {
@@ -49,37 +45,9 @@ export async function POST(req: NextRequest) {
           for await (const chunk of response) {
             const content = chunk.choices[0]?.delta?.content;
             if (content) {
-              fullContent += content;
               controller.enqueue(new TextEncoder().encode(content));
             }
-            
-            // Check for usage data in the final chunk
-            if (chunk.usage) {
-              tokenUsage = {
-                promptTokens: chunk.usage.prompt_tokens || estimatedPromptTokens,
-                completionTokens: chunk.usage.completion_tokens || 0,
-                totalTokens: chunk.usage.total_tokens || 0,
-                cost: 0
-              };
-              tokenUsage.cost = calculateCost(tokenUsage.promptTokens, tokenUsage.completionTokens);
-            }
           }
-          
-          // If we didn't get usage data from the stream, estimate it
-          if (!tokenUsage) {
-            const completionTokens = estimateTokens(fullContent);
-            tokenUsage = {
-              promptTokens: estimatedPromptTokens,
-              completionTokens: completionTokens,
-              totalTokens: estimatedPromptTokens + completionTokens,
-              cost: calculateCost(estimatedPromptTokens, completionTokens)
-            };
-          }
-          
-          // Send token usage as a special data chunk at the end
-          const tokenData = JSON.stringify({ tokenUsage });
-          controller.enqueue(new TextEncoder().encode(`\n##TOKEN_USAGE##${tokenData}##END_TOKEN_USAGE##`));
-          
         } catch (error) {
           console.error('Stream processing error:', error);
         } finally {
@@ -88,10 +56,8 @@ export async function POST(req: NextRequest) {
       },
     });
     
-    // Return a StreamingTextResponse with custom headers for token usage
-    const streamingResponse = new StreamingTextResponse(stream);
-    
-    return streamingResponse;
+    // Return a StreamingTextResponse
+    return new StreamingTextResponse(stream);
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(

@@ -16,28 +16,13 @@ import {
 } from '@/lib/session';
 import { getRandomStarter } from '@/lib/prompts/core-principles';
 import { isDevelopment } from '@/lib/env';
-import { estimateTokens, calculateCost } from '@/lib/tokens';
+import { estimateTokens, calculateCost, estimateMessagesTokens } from '@/lib/tokens';
 
 export default function ChatInterface() {
   const [session, setSession] = useState(() => getSession() || createNewSession());
   const [isInitialized, setIsInitialized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-
-  // Parse token usage from the streaming response
-  const parseTokenUsageFromContent = useCallback((content: string): { content: string; tokenUsage?: TokenUsage } => {
-    const tokenMatch = content.match(/\n##TOKEN_USAGE##(.+?)##END_TOKEN_USAGE##/);
-    if (tokenMatch) {
-      try {
-        const tokenData = JSON.parse(tokenMatch[1]);
-        const cleanContent = content.replace(tokenMatch[0], '').trim();
-        return { content: cleanContent, tokenUsage: tokenData.tokenUsage };
-      } catch (error) {
-        console.error('Failed to parse token usage:', error);
-      }
-    }
-    return { content, tokenUsage: undefined };
-  }, []);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat({
     api: '/api/chat',
@@ -47,13 +32,24 @@ export default function ChatInterface() {
       content: msg.content,
     })),
     onFinish: (message) => {
-      // Parse token usage from the message content
-      const { content, tokenUsage } = parseTokenUsageFromContent(message.content);
+      // Estimate token usage for the assistant message
+      const completionTokens = estimateTokens(message.content);
+      const promptTokens = estimateMessagesTokens(messages.map(m => ({
+        role: m.role,
+        content: m.content
+      })));
+      
+      const tokenUsage: TokenUsage = {
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        cost: calculateCost(promptTokens, completionTokens),
+      };
       
       const newMessage: Message = {
         id: message.id,
         role: message.role as 'assistant',
-        content: content,
+        content: message.content,
         timestamp: new Date(),
         tokenUsage: tokenUsage,
       };
@@ -66,13 +62,6 @@ export default function ChatInterface() {
         const updatedSession = addMessageToSession(currentSession, newMessage);
         return updatedSession;
       });
-      
-      // Update the displayed message to remove token usage markers
-      if (content !== message.content) {
-        setMessages(messages => messages.map(m => 
-          m.id === message.id ? { ...m, content } : m
-        ));
-      }
     },
   });
 
@@ -193,7 +182,6 @@ export default function ChatInterface() {
           {messages.map((message, index) => {
             // Find the corresponding local message for token usage
             const localMessage = localMessages.find(m => m.id === message.id);
-            const { content } = parseTokenUsageFromContent(message.content);
             
             return (
               <MessageBubble
@@ -201,7 +189,7 @@ export default function ChatInterface() {
                 message={{
                   id: message.id,
                   role: message.role as 'user' | 'assistant',
-                  content: content,
+                  content: message.content,
                   timestamp: localMessage?.timestamp || new Date(),
                   tokenUsage: localMessage?.tokenUsage,
                 }}
