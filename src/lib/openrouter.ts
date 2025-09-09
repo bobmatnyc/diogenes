@@ -15,7 +15,22 @@ export function getOpenRouterClient() {
 // For backward compatibility
 export const openrouter = getOpenRouterClient();
 
-export const DEFAULT_MODEL = 'openai/gpt-4-turbo';
+// Model configurations for different purposes
+export const MODELS = {
+  // Primary model: Claude 3.5 Sonnet for superior philosophical reasoning
+  CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet-20241022',
+  
+  // Delegation models: Perplexity for web search
+  PERPLEXITY_SONAR_PRO: 'perplexity/sonar-pro',
+  PERPLEXITY_SONAR_ONLINE: 'perplexity/llama-3.1-sonar-large-128k-online',
+  
+  // Fallback models
+  CLAUDE_HAIKU: 'anthropic/claude-3-haiku-20240307',
+  GPT_4_TURBO: 'openai/gpt-4-turbo-preview',
+};
+
+// Default model for Diogenes responses
+export const DEFAULT_MODEL = MODELS.CLAUDE_SONNET;
 
 export interface OpenRouterStreamOptions {
   messages: Array<{
