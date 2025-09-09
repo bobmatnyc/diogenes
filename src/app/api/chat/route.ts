@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { StreamingTextResponse } from 'ai';
-import { openrouter, DEFAULT_MODEL } from '@/lib/openrouter';
+import { getOpenRouterClient, DEFAULT_MODEL } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 import { estimateMessagesTokens, calculateCost, estimateTokens } from '@/lib/tokens';
 import { TokenUsage } from '@/types/chat';
@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
     // Estimate prompt tokens before making the request
     const estimatedPromptTokens = estimateMessagesTokens(allMessages);
 
+    // Get fresh client instance to ensure latest env vars
+    const openrouter = getOpenRouterClient();
     const response = await openrouter.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: allMessages,
