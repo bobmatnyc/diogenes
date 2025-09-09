@@ -34,25 +34,29 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
 
-    // Create a proper stream for the AI SDK
+    // Create a transform stream that converts OpenAI format to plain text
     const encoder = new TextEncoder();
+    
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const chunk of response) {
-            const content = chunk.choices[0]?.delta?.content;
+            const content = chunk.choices[0]?.delta?.content || '';
             if (content) {
+              // Send plain text - StreamingTextResponse will handle the formatting
               controller.enqueue(encoder.encode(content));
             }
           }
-          controller.close();
         } catch (error) {
+          console.error('Stream processing error:', error);
           controller.error(error);
+        } finally {
+          controller.close();
         }
       },
     });
-    
-    // Return a StreamingTextResponse
+
+    // Use StreamingTextResponse which handles the SSE formatting for useChat
     return new StreamingTextResponse(stream);
   } catch (error: any) {
     console.error('Chat API error:', error);
