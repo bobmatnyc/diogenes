@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { StreamingTextResponse } from 'ai';
 import { openrouter, DEFAULT_MODEL } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 
@@ -31,8 +31,18 @@ export async function POST(req: NextRequest) {
       stream: true,
     });
 
-    // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(response);
+    // Convert the OpenAI SDK stream to a ReadableStream for the StreamingTextResponse
+    const stream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            controller.enqueue(new TextEncoder().encode(content));
+          }
+        }
+        controller.close();
+      },
+    });
     
     // Return a StreamingTextResponse, which can be consumed by the client
     return new StreamingTextResponse(stream);
