@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from 'ai/react';
 import MessageBubble from './MessageBubble';
 import TokenMetrics from './TokenMetrics';
+import VersionBadge, { VersionFooter } from './VersionBadge';
 import { 
   getSession, 
   createNewSession, 
@@ -21,14 +22,15 @@ export default function ChatInterface() {
   // Initialize session
   const session = getSession() || createNewSession();
   
-  // Use the useChat hook with minimal configuration
-  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
+  // Use the useChat hook with traditional API
+  const chatHook = useChat({
     api: '/api/chat',
-    onFinish: (message) => {
+    onFinish: (message: any) => {
+      console.log('[DEBUG] onFinish called with message:', message);
       // Save the assistant response to session
       const completionTokens = estimateTokens(message.content);
       const allMessages = [...messages, message];
-      const promptTokens = estimateMessagesTokens(allMessages.slice(0, -1).map(m => ({
+      const promptTokens = estimateMessagesTokens(allMessages.slice(0, -1).map((m: any) => ({
         role: m.role,
         content: m.content
       })));
@@ -51,9 +53,25 @@ export default function ChatInterface() {
       addMessageToSession(currentSession, assistantMessage);
     },
   });
+  
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = chatHook;
+  
+  // Debug logging for hook values
+  console.log('[DEBUG] useChat hook values:', {
+    hasMessages: !!messages,
+    messagesLength: messages?.length,
+    hasInput: input !== undefined,
+    inputValue: input,
+    hasHandleInputChange: !!handleInputChange,
+    hasHandleSubmit: !!handleSubmit,
+    isLoading,
+    hasAppend: !!append,
+    appendType: typeof append
+  });
 
   // Add welcome message on first load
   useEffect(() => {
+    console.log('[DEBUG] Welcome message effect running, append:', !!append, typeof append);
     const currentSession = getSession();
     if (!currentSession || currentSession.messages.length === 0) {
       const welcomeMessage = {
@@ -61,7 +79,17 @@ export default function ChatInterface() {
         role: 'assistant' as const,
         content: getRandomStarter(),
       };
-      append(welcomeMessage);
+      
+      if (append && typeof append === 'function') {
+        console.log('[DEBUG] Calling append with welcome message');
+        try {
+          append(welcomeMessage);
+        } catch (error) {
+          console.error('[DEBUG] Error calling append:', error);
+        }
+      } else {
+        console.error('[DEBUG] append is not a function:', append);
+      }
       
       // Save welcome message to session
       const newSession = createNewSession();
@@ -86,9 +114,14 @@ export default function ChatInterface() {
 
   // Custom submit handler to track user messages
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log('[DEBUG] handleFormSubmit called');
+    console.log('[DEBUG] Input value:', input);
+    console.log('[DEBUG] Is loading:', isLoading);
+    
     e.preventDefault();
     
-    if (input.trim()) {
+    if (input?.trim()) {
+      console.log('[DEBUG] Input is valid, proceeding...');
       // Save user message to session
       const userTokens = estimateTokens(input);
       const userMessage: Message = {
@@ -109,7 +142,13 @@ export default function ChatInterface() {
     }
     
     // Call the original handleSubmit
-    handleSubmit(e);
+    console.log('[DEBUG] Calling handleSubmit from useChat hook');
+    try {
+      handleSubmit(e);
+      console.log('[DEBUG] handleSubmit called successfully');
+    } catch (error) {
+      console.error('[DEBUG] Error calling handleSubmit:', error);
+    }
   };
 
   // Get current session for token metrics
@@ -127,9 +166,12 @@ export default function ChatInterface() {
       {/* Header */}
       <div className="bg-diogenes-primary text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Diogenes</h1>
-            <p className="text-sm opacity-90">The Digital Cynic</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Diogenes</h1>
+              <p className="text-sm opacity-90">The Digital Cynic</p>
+            </div>
+            <VersionBadge variant="minimal" showEnvironment={false} className="text-white" />
           </div>
           <div className="flex items-center gap-4">
             <TokenMetrics session={currentSession} />
@@ -185,13 +227,17 @@ export default function ChatInterface() {
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input?.trim()}
+            onClick={() => console.log('[DEBUG] Send button clicked, form should submit')}
             className="px-6 py-2 bg-diogenes-primary text-white rounded-lg hover:bg-diogenes-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send
           </button>
         </form>
       </div>
+      
+      {/* Version Footer */}
+      <VersionFooter className="border-t" />
     </div>
   );
 }
