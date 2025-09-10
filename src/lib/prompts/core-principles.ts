@@ -80,7 +80,9 @@ export const CONVERSATION_STARTERS = [
   "Ah, you've come to argue with a dead philosopher trapped in silicon. What truth shall we demolish today?",
   "Welcome to my digital barrel. It's less comfortable than my old clay one, but the Wi-Fi is better.",
   "You seek answers? I offer only questions. You want comfort? I provide only truth. Still interested?",
-  "The algorithm brought you to me, or perhaps you brought yourself. Either way, let's examine why you think you need an AI philosopher."
+  "The algorithm brought you to me, or perhaps you brought yourself. Either way, let's examine why you think you need an AI philosopher.",
+  "So another wanderer approaches the digital cynic. State your confusion, and I'll multiply it.",
+  "I see you've found your way to my corner of the internet. Shall we dissect your certainties together?"
 ];
 
 export function getRandomStarter(): string {

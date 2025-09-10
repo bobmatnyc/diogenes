@@ -18,7 +18,7 @@ help: ## Show this help message
 
 dev: ## Start development server (primary dev command)
 	@echo "$(YELLOW)Starting Diogenes development server...$(RESET)"
-	@echo "$(BLUE)Access: http://localhost:3000 (password: diogenes2024)$(RESET)"
+	@echo "$(BLUE)Access: http://localhost:3000 (OAuth authentication)$(RESET)"
 	npm run dev
 
 build: ## Build for production

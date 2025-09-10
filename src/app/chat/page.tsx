@@ -6,7 +6,7 @@ import ChatInterfaceWorking from '@/components/ChatInterfaceWorking';
 
 export default function ChatPage() {
   return (
-    <AuthGate>
+    <AuthGate requireAuth={true}>
       <ChatInterfaceWorking />
     </AuthGate>
   );

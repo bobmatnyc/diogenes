@@ -2,17 +2,23 @@
 
 A contrarian AI chatbot that challenges conventional thinking through Socratic dialogue and philosophical provocation.
 
-## POC 1 Features
+## Features
 
-- Fixed password authentication (password: diogenes2024)
+- **OAuth Authentication**: Secure authentication via Clerk (Google, GitHub, Email)
 - Chat interface with streaming responses
 - Session management using localStorage
 - Core Diogenean system prompt
 - Integration with OpenRouter API
+- Web search delegation to Perplexity
+- Real-time token tracking and cost estimation
 
 ## Quick Start
 
 ```bash
+# Setup environment (first time)
+cp .env.example .env.local
+# Add your Clerk and OpenRouter API keys to .env.local
+
 # Single-command development
 make dev
 
@@ -20,12 +26,13 @@ make dev
 npm run dev
 ```
 
-**Password**: `diogenes2024`  
-**URL**: http://localhost:3000
+**URL**: http://localhost:3000  
+**Auth**: Sign in with email or OAuth providers
 
 ## Documentation
 
 - **[CLAUDE.md](./CLAUDE.md)** - Complete guide for Claude Code and AI agents  
+- **[CLERK_SETUP.md](./CLERK_SETUP.md)** - Clerk authentication setup guide
 - **[STRUCTURE.md](./STRUCTURE.md)** - Detailed project structure and architecture
 - **[README.md](./README.md)** - This overview document
 
@@ -50,8 +57,15 @@ npm start          # Start production server
 Create a `.env.local` file with:
 
 ```
+# Required - Get from https://openrouter.ai
 OPENROUTER_API_KEY=your_openrouter_api_key
-NEXT_PUBLIC_APP_PASSWORD=diogenes2024
+
+# Required - Get from https://clerk.com
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+
+# Optional - For enhanced web search
+TAVILY_API_KEY=your_tavily_api_key
 ```
 
 ## Tech Stack

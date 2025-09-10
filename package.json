@@ -1,6 +1,6 @@
 {
   "name": "diogenes",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.27",
     "@ai-sdk/react": "^2.0.39",
+    "@clerk/nextjs": "^6.31.10",
     "ai": "^5.0.39",
     "axios": "^1.11.0",
     "js-tiktoken": "^1.0.21",

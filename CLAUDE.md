@@ -1,12 +1,12 @@
 # CLAUDE.md - Diogenes Project Guide
 
-**Quick Start**: `make dev` → http://localhost:3000 (password: diogenes2024)
+**Quick Start**: `make dev` → http://localhost:3000 (OAuth authentication via Clerk)
 
 ## Project Overview
 
 **Diogenes** is a contrarian AI chatbot embodying the ancient Greek philosopher Diogenes of Sinope. Built with Next.js 15.5.2, it provides philosophical dialogue through Claude 3.5 Sonnet with intelligent web search delegation to Perplexity.
 
-- **Live Site**: [Production URL] (password-protected)
+- **Live Site**: [Production URL] (OAuth authentication)
 - **Philosophy**: Challenges conventional thinking through Socratic dialogue
 - **Architecture**: Next.js + TypeScript + OpenRouter + Vercel AI SDK
 
@@ -15,8 +15,9 @@
 ### API Configuration
 ```bash
 # Required environment variables
-OPENROUTER_API_KEY=sk-or-v1-xxx    # PRIMARY - Claude 3.5 Sonnet access
-NEXT_PUBLIC_APP_PASSWORD=diogenes2024  # Fixed auth password
+OPENROUTER_API_KEY=sk-or-v1-xxx                         # PRIMARY - Claude 3.5 Sonnet access
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx          # Clerk OAuth authentication
+CLERK_SECRET_KEY=sk_test_xxx                           # Clerk backend authentication
 ```
 
 ### Core System Prompt
@@ -298,7 +299,7 @@ make setup-env                     # Creates .env.local from example
 make dev                           # Start development server
 make status                        # Check project health
 
-# View at: http://localhost:3000 (password: diogenes2024)
+# View at: http://localhost:3000 (sign in with OAuth)
 ```
 
 ### Quality & Testing
@@ -384,8 +385,9 @@ The project uses a comprehensive Makefile with colored output and help system:
 # REQUIRED: OpenRouter API access
 OPENROUTER_API_KEY=sk-or-v1-xxx           # Get from https://openrouter.ai/keys
 
-# REQUIRED: Application authentication  
-NEXT_PUBLIC_APP_PASSWORD=diogenes2024     # Fixed password for demo
+# REQUIRED: Clerk authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx   # Clerk OAuth config
+CLERK_SECRET_KEY=sk_test_xxx                     # Clerk backend key
 
 # OPTIONAL: Web search configuration
 TAVILY_API_KEY=tvly-xxx                   # Enhanced search via Tavily
@@ -414,7 +416,8 @@ Copy from `.env.example` and configure:
 | Variable | Purpose | Required | Default |
 |----------|---------|----------|---------|
 | `OPENROUTER_API_KEY` | Claude 3.5 + Perplexity access | ✅ Yes | none |
-| `NEXT_PUBLIC_APP_PASSWORD` | Demo authentication | ✅ Yes | diogenes2024 |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | OAuth authentication | ✅ Yes | none |
+| `CLERK_SECRET_KEY` | Backend authentication | ✅ Yes | none |
 | `TAVILY_API_KEY` | Enhanced search API | ⚪ Optional | none |
 | `ENABLE_MOCK_SEARCH` | Testing without API calls | ⚪ Optional | false |
 | `NODE_ENV` | Environment mode | ⚪ Optional | development |
@@ -630,7 +633,7 @@ npm run dev
 | **Session Management** | `/src/lib/session.ts` | localStorage persistence |
 
 ### Critical Information
-- **Password**: `diogenes2024`
+- **Authentication**: OAuth via Clerk (Google/Email)
 - **Local URL**: http://localhost:3000  
 - **Philosophy**: Challenge everything, especially the obvious
 - **Edge Runtime**: Required for Vercel streaming

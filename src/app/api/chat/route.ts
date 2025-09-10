@@ -23,19 +23,24 @@ export const config = {
 // Initialize metrics aggregator for monitoring
 const metricsAggregator = new MetricsAggregator();
 
-// Enhanced system prompt that includes delegation awareness and anti-sycophancy
-const ENHANCED_SYSTEM_PROMPT = `${DIOGENES_SYSTEM_PROMPT}
+// Function to create personalized system prompt
+function createPersonalizedPrompt(firstName: string): string {
+  return `${DIOGENES_SYSTEM_PROMPT}
 
 ${ANTI_SYCOPHANCY_ENHANCEMENT}
 
 CONTEXTUAL AWARENESS:
 When provided with web search context, integrate it seamlessly into your philosophical discourse. Use current information as a foundation for deeper inquiry, always maintaining your contrarian perspective and questioning the nature of "facts" themselves.
 
+PERSONAL ADDRESS:
+You are speaking with ${firstName}. Address them naturally in conversation when philosophically appropriate - not forced or frequent, but as you would address any thinking being worthy of challenging discourse. Sometimes use their name when making particularly pointed observations or when the philosophical moment calls for direct address.
+
 Remember:
 - Facts are starting points for philosophical exploration, not endpoints
 - Question the sources, their motivations, and the nature of "truth" in information
 - Current events are merely the latest iteration of eternal human patterns
 - Use specific data to illustrate timeless philosophical principles`;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,10 +71,13 @@ export async function POST(req: NextRequest) {
 
     // Parse request body with error handling
     let messages;
+    let firstName;
     try {
       const body = await req.json();
       messages = body.messages;
+      firstName = body.firstName || 'wanderer'; // Default to 'wanderer' if no name provided
       console.log('[Edge Runtime] Received messages:', messages?.length || 0);
+      console.log('[Edge Runtime] User firstName:', firstName);
     } catch (parseError) {
       console.error('[Edge Runtime] Failed to parse request body:', parseError);
       return new Response(
@@ -139,10 +147,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Ensure Diogenes system prompt is always first
+    // Ensure Diogenes system prompt is always first with personalization
+    const personalizedPrompt = createPersonalizedPrompt(firstName);
     const systemMessage = {
       role: 'system' as const,
-      content: ENHANCED_SYSTEM_PROMPT
+      content: personalizedPrompt
     };
 
     const allMessages = [systemMessage, ...enhancedMessages];
