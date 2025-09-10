@@ -32,3 +32,47 @@ export interface ChatResponse {
   sessionId: string;
   tokenUsage?: TokenUsage;
 }
+
+// Model configuration
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  description?: string;
+}
+
+export const AVAILABLE_MODELS: AIModel[] = [
+  {
+    id: 'anthropic/claude-3.5-sonnet-20241022',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'Anthropic',
+    description: 'Latest and most capable Claude model',
+  },
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    description: 'Latest GPT-4 optimized model',
+  },
+  {
+    id: 'google/gemini-pro-1.5',
+    name: 'Gemini 1.5 Pro',
+    provider: 'Google',
+    description: 'Google\'s advanced multimodal model',
+  },
+  {
+    id: 'meta-llama/llama-3.1-405b-instruct',
+    name: 'Llama 3.1 405B',
+    provider: 'Meta',
+    description: 'Meta\'s largest open-source model',
+  },
+  {
+    id: 'perplexity/llama-3.1-sonar-large-128k-online',
+    name: 'Perplexity Sonar',
+    provider: 'Perplexity',
+    description: 'Model with real-time web search',
+  },
+];
+
+export const DEFAULT_MODEL_ID = 'anthropic/claude-3.5-sonnet-20241022';
+export const DEFAULT_MODEL = DEFAULT_MODEL_ID; // Alias for compatibility

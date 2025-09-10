@@ -2,6 +2,8 @@
 
 **Quick Start**: `make dev` → http://localhost:3000 (OAuth authentication via Clerk)
 
+**Version**: 0.4.0 - Modern tooling with pnpm, Biome, Vitest, and Vercel Analytics
+
 ## Project Overview
 
 **Diogenes** is a contrarian AI chatbot embodying the ancient Greek philosopher Diogenes of Sinope. Built with Next.js 15.5.2, it provides philosophical dialogue through Claude 3.5 Sonnet with intelligent web search delegation to Perplexity.
@@ -9,6 +11,7 @@
 - **Live Site**: [Production URL] (OAuth authentication)
 - **Philosophy**: Challenges conventional thinking through Socratic dialogue
 - **Architecture**: Next.js + TypeScript + OpenRouter + Vercel AI SDK
+- **Tooling**: pnpm (package manager) + Biome (linting/formatting) + Vitest (testing)
 
 ## 🔴 CRITICAL Components
 
@@ -84,6 +87,44 @@ AuthGate
     ├── InputForm
     └── TokenMetrics
 ```
+
+## Modern Development Stack (v0.4.0)
+
+### Package Management - pnpm
+- **Fast & Efficient**: Disk space optimization through content-addressable storage
+- **Strict**: No phantom dependencies, better security
+- **Commands**: All `npm` commands replaced with `pnpm` (e.g., `pnpm install`, `pnpm run dev`)
+- **Lockfile**: `pnpm-lock.yaml` (gitignored for this project)
+
+### Code Quality - Biome
+- **All-in-One**: Replaces ESLint + Prettier with single fast tool
+- **Configuration**: `biome.json` with comprehensive rules
+- **Commands**:
+  - `pnpm run lint:biome` - Check for issues
+  - `pnpm run format:biome` - Format and fix code
+  - `make lint` / `make format` - Makefile shortcuts
+
+### Testing - Vitest
+- **Fast**: Powered by Vite, instant HMR for tests
+- **Compatible**: Works with existing Jest tests
+- **Configuration**: `vitest.config.ts` with React Testing Library
+- **Commands**:
+  - `pnpm run test` - Run tests in watch mode
+  - `pnpm run test:ui` - Interactive UI
+  - `pnpm run test:coverage` - Coverage report
+  - `make test` / `make test-ui` / `make test-coverage` - Makefile shortcuts
+
+### Analytics
+#### Vercel Analytics
+- **Integrated**: Analytics component in layout
+- **Automatic**: Tracks Core Web Vitals and custom events
+- **Privacy-First**: GDPR compliant, no cookies required
+
+#### Google Analytics
+- **Production Only**: Only loads in production environment
+- **Measurement ID**: Configured via `NEXT_PUBLIC_GA_ID`
+- **Implementation**: Uses gtag.js with Next.js Script component
+- **Strategy**: Loads with `afterInteractive` for optimal performance
 
 ## File Organization Guidelines
 
@@ -304,30 +345,27 @@ make status                        # Check project health
 
 ### Quality & Testing
 
-**Current Status**: TypeScript ✅ Ready | Linting ⚠️ Needs Migration | Testing ❌ Not Configured
+**Current Status**: TypeScript ✅ Ready | Linting ✅ Biome Configured | Testing ✅ Vitest Ready
 
 ```bash
 # Single-path quality checks
-make typecheck                     # TypeScript validation (ready)
-make lint                          # Code linting (requires setup first)
-make lint-fix                      # Auto-fix linting issues  
-make format                        # Code formatting
+make typecheck                     # TypeScript validation
+make lint                          # Code linting with Biome
+make lint-fix                      # Auto-fix with Biome  
+make format                        # Code formatting with Biome
 make quality                       # All quality checks at once
 
-# One-time linting setup (Next.js 15 migration required)
-npx @next/codemod@canary next-lint-to-eslint-cli .
-# Follow prompts, then all linting commands will work
-
-# Testing setup and execution
-make setup-tests                   # Initialize Jest + Testing Library (one-time)
-make test                          # Run all tests (when configured)
+# Testing commands
+make test                          # Run tests in watch mode
+make test-ui                       # Interactive test UI
+make test-coverage                 # Coverage report
 ```
 
 **Development Standards**:
 - **TypeScript**: Strict mode enabled, full type coverage
-- **Linting**: Next.js ESLint rules + React best practices  
-- **Formatting**: ESLint-based auto-fixing (integrated approach)
-- **Testing**: Jest + React Testing Library pattern (setup available)
+- **Linting**: Biome with comprehensive rule set for React/TypeScript  
+- **Formatting**: Biome auto-formatting (100 char line width, 2-space indent)
+- **Testing**: Vitest + React Testing Library (80% coverage threshold)
 
 ### Build & Deploy
 ```bash
@@ -388,6 +426,9 @@ OPENROUTER_API_KEY=sk-or-v1-xxx           # Get from https://openrouter.ai/keys
 # REQUIRED: Clerk authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx   # Clerk OAuth config
 CLERK_SECRET_KEY=sk_test_xxx                     # Clerk backend key
+
+# OPTIONAL: Analytics
+NEXT_PUBLIC_GA_ID=G-RJ5SZ5DT1X           # Google Analytics measurement ID
 
 # OPTIONAL: Web search configuration
 TAVILY_API_KEY=tvly-xxx                   # Enhanced search via Tavily
@@ -574,7 +615,7 @@ Edit `DIOGENES_SYSTEM_PROMPT` in `/src/lib/prompts/core-principles.ts`
 # Enable verbose logging
 export NODE_ENV=development
 export VERCEL_ENV=preview
-npm run dev
+pnpm run dev
 ```
 
 ## Integration Points

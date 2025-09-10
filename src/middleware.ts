@@ -2,17 +2,24 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 /**
  * Clerk middleware for route protection
- * Protects /chat routes while allowing public access to other pages
+ * In development: Bypasses authentication completely
+ * In production: Protects /chat routes while allowing public access to other pages
  */
 
-// Define which routes should be protected
-const isProtectedRoute = createRouteMatcher([
-  '/chat(.*)',
-  '/api/chat(.*)',
-]);
+// Check if we're in development mode
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Define which routes should be protected (in production only)
+const isProtectedRoute = createRouteMatcher(['/chat(.*)', '/api/chat(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Protect routes that match the protected pattern
+  // Skip authentication in development mode
+  if (isDevelopment) {
+    // In development, don't protect any routes
+    return;
+  }
+
+  // In production, protect routes that match the protected pattern
   if (isProtectedRoute(req)) {
     await auth.protect();
   }

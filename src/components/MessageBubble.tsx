@@ -1,6 +1,6 @@
 'use client';
 
-import { Message } from '@/types/chat';
+import type { Message } from '@/types/chat';
 import MessageTokenBadge from './MessageTokenBadge';
 
 interface MessageBubbleProps {
@@ -9,7 +9,7 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
-  
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div
@@ -19,9 +19,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
         }`}
       >
-        <div className="text-sm font-semibold mb-1">
-          {isUser ? 'You' : 'Diogenes'}
-        </div>
+        <div className="text-sm font-semibold mb-1">{isUser ? 'You' : 'Diogenes'}</div>
         <div className="whitespace-pre-wrap break-words">{message.content}</div>
         <div className="flex items-center justify-between mt-2">
           <div className="text-xs opacity-70">

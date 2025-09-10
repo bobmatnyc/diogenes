@@ -1,13 +1,13 @@
 'use client';
 
 import AuthGate from '@/components/AuthGate';
-// Using working version with manual state management
-import ChatInterfaceWorking from '@/components/ChatInterfaceWorking';
+// Using new shadcn/ui chat interface
+import ChatInterface from '@/components/chat/ChatInterface';
 
 export default function ChatPage() {
   return (
     <AuthGate requireAuth={true}>
-      <ChatInterfaceWorking />
+      <ChatInterface />
     </AuthGate>
   );
 }

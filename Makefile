@@ -19,39 +19,52 @@ help: ## Show this help message
 dev: ## Start development server (primary dev command)
 	@echo "$(YELLOW)Starting Diogenes development server...$(RESET)"
 	@echo "$(BLUE)Access: http://localhost:3000 (OAuth authentication)$(RESET)"
-	npm run dev
+	@if [ -f .env.local ]; then \
+		export $$(grep OPENROUTER_API_KEY .env.local | xargs) && pnpm run dev; \
+	else \
+		pnpm run dev; \
+	fi
 
 build: ## Build for production
 	@echo "$(YELLOW)Building Diogenes for production...$(RESET)"
-	npm run build
+	pnpm run build
 
 start: ## Start production server (requires build first)
 	@echo "$(YELLOW)Starting Diogenes in production mode...$(RESET)"
-	npm start
+	pnpm start
 
 test: ## Run all tests
-	@echo "$(YELLOW)Running tests...$(RESET)"
-	@echo "$(RED)No test suite configured yet. Run 'make setup-tests' to initialize.$(RESET)"
+	@echo "$(YELLOW)Running tests with Vitest...$(RESET)"
+	pnpm run test
+
+test-ui: ## Run tests with UI
+	@echo "$(YELLOW)Opening Vitest UI...$(RESET)"
+	pnpm run test:ui
+
+test-coverage: ## Run tests with coverage
+	@echo "$(YELLOW)Running tests with coverage...$(RESET)"
+	pnpm run test:coverage
 
 lint: ## Lint code and show issues
-	@echo "$(YELLOW)Linting TypeScript and React code...$(RESET)"
-	npm run lint
+	@echo "$(YELLOW)Linting with Biome...$(RESET)"
+	pnpm run lint:biome
 
 lint-fix: ## Lint and auto-fix issues where possible
-	@echo "$(YELLOW)Linting and auto-fixing code issues...$(RESET)"
-	npm run lint -- --fix
+	@echo "$(YELLOW)Formatting and fixing with Biome...$(RESET)"
+	pnpm run format:biome
 
-format: ## Format code with prettier (via next lint)
-	@echo "$(YELLOW)Formatting code...$(RESET)"
-	npm run lint -- --fix
+format: ## Format code with Biome
+	@echo "$(YELLOW)Formatting code with Biome...$(RESET)"
+	pnpm run format:biome
 
-quality: ## Run all quality checks (lint)
+quality: ## Run all quality checks (lint + typecheck)
 	@echo "$(YELLOW)Running quality checks...$(RESET)"
+	@$(MAKE) typecheck
 	@$(MAKE) lint
 
 install: ## Install dependencies
-	@echo "$(YELLOW)Installing dependencies...$(RESET)"
-	npm install
+	@echo "$(YELLOW)Installing dependencies with pnpm...$(RESET)"
+	pnpm install
 
 clean: ## Clean build artifacts and node_modules
 	@echo "$(YELLOW)Cleaning build artifacts...$(RESET)"
@@ -61,8 +74,8 @@ clean: ## Clean build artifacts and node_modules
 
 deps-update: ## Update dependencies (be careful in production)
 	@echo "$(YELLOW)Checking for dependency updates...$(RESET)"
-	npm outdated
-	@echo "$(BLUE)Run 'npm update' to update dependencies$(RESET)"
+	pnpm outdated
+	@echo "$(BLUE)Run 'pnpm update' to update dependencies$(RESET)"
 
 setup-env: ## Set up environment variables
 	@echo "$(YELLOW)Setting up environment...$(RESET)"
@@ -74,10 +87,9 @@ setup-env: ## Set up environment variables
 		echo "$(BLUE).env.local already exists$(RESET)"; \
 	fi
 
-setup-tests: ## Initialize test framework (Jest + Testing Library)
-	@echo "$(YELLOW)Setting up test framework...$(RESET)"
-	npm install --save-dev jest @testing-library/react @testing-library/jest-dom jest-environment-jsdom
-	@echo "$(GREEN)Test framework installed. Add test scripts to package.json$(RESET)"
+setup-tests: ## Initialize test framework (Vitest + Testing Library)
+	@echo "$(YELLOW)Test framework already configured with Vitest...$(RESET)"
+	@echo "$(GREEN)Vitest is ready. Run 'make test' to run tests$(RESET)"
 
 deploy: ## Deploy to Vercel (requires git push or vercel CLI)
 	@echo "$(YELLOW)Deploying Diogenes...$(RESET)"
@@ -91,11 +103,11 @@ deploy: ## Deploy to Vercel (requires git push or vercel CLI)
 
 typecheck: ## Run TypeScript type checking
 	@echo "$(YELLOW)Running TypeScript type checking...$(RESET)"
-	npx tsc --noEmit
+	pnpm run typecheck
 
 analyze: ## Analyze bundle size
 	@echo "$(YELLOW)Analyzing bundle size...$(RESET)"
-	npm run build
+	pnpm run build
 	@echo "$(BLUE)Check .next/analyze/ for bundle analysis$(RESET)"
 
 logs-dev: ## Show recent development logs
@@ -109,8 +121,8 @@ logs-dev: ## Show recent development logs
 status: ## Show project status and health
 	@echo "$(BLUE)Diogenes Project Status$(RESET)"
 	@echo "Node version: $(shell node --version)"
-	@echo "NPM version: $(shell npm --version)"
-	@echo "Next.js version: $(shell npm list next --depth=0 2>/dev/null | grep next || echo 'Next.js not found')"
+	@echo "PNPM version: $(shell pnpm --version 2>/dev/null || echo 'pnpm not installed')"
+	@echo "Next.js version: $(shell pnpm list next --depth=0 2>/dev/null | grep next || echo 'Next.js not found')"
 	@echo "Environment file: $(shell [ -f .env.local ] && echo '✓ Present' || echo '✗ Missing')"
 	@echo "Dependencies: $(shell [ -d node_modules ] && echo '✓ Installed' || echo '✗ Missing')"
 	@echo "Built: $(shell [ -d .next ] && echo '✓ Present' || echo '✗ Not built')"
@@ -153,19 +165,19 @@ version: ## Show current version
 
 version-patch: ## Bump patch version (0.0.x)
 	@echo "$(YELLOW)Bumping patch version...$(RESET)"
-	npm run version:patch
+	pnpm run version:patch
 
 version-minor: ## Bump minor version (0.x.0)
 	@echo "$(YELLOW)Bumping minor version...$(RESET)"
-	npm run version:minor
+	pnpm run version:minor
 
 version-major: ## Bump major version (x.0.0)
 	@echo "$(YELLOW)Bumping major version...$(RESET)"
-	npm run version:major
+	pnpm run version:major
 
 version-rc: ## Create release candidate version
 	@echo "$(YELLOW)Creating release candidate...$(RESET)"
-	npm run version:prerelease
+	pnpm run version:prerelease
 
 changelog: ## Generate and display changelog
 	@echo "$(BLUE)Recent Changes$(RESET)"
@@ -214,13 +226,13 @@ release-dry: ## Dry run of release process
 release-patch: ## Release a patch version
 	@echo "$(YELLOW)Releasing patch version...$(RESET)"
 	@$(MAKE) production-ready
-	@npm run release
+	@pnpm run release
 	@echo "$(GREEN)Patch released! Don't forget to deploy.$(RESET)"
 
 release-minor: ## Release a minor version
 	@echo "$(YELLOW)Releasing minor version...$(RESET)"
 	@$(MAKE) production-ready
-	@npm run release:minor
+	@pnpm run release:minor
 	@echo "$(GREEN)Minor version released! Don't forget to deploy.$(RESET)"
 
 release-major: ## Release a major version
@@ -228,7 +240,7 @@ release-major: ## Release a major version
 	@echo "$(RED)Warning: Major version bump - ensure breaking changes are documented!$(RESET)"
 	@read -p "Continue? (y/N) " confirm && [ "$$confirm" = "y" ] || exit 1
 	@$(MAKE) production-ready
-	@npm run release:major
+	@pnpm run release:major
 	@echo "$(GREEN)Major version released! Don't forget to deploy and update documentation.$(RESET)"
 
 # File organization commands

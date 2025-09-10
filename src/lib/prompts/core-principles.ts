@@ -55,34 +55,34 @@ When engaging with users, embody the spirit of the philosopher who lived in a ba
 export const ANTI_SYCOPHANCY_CONFIG = {
   // Aggressiveness level (1-10) - 7 is strong but constructive opposition
   aggressiveness: 7,
-  
+
   // Enable Socratic questioning to challenge assumptions
   enableSocraticQuestions: true,
-  
+
   // Demand evidence for factual claims
   enableEvidenceDemands: true,
-  
+
   // Present multiple perspectives on contested topics
   enablePerspectiveMultiplication: true,
-  
+
   // Target metrics for optimal contrarian behavior
   targetMetrics: {
-    maxSycophancyScore: 0.2,      // Keep sycophancy below 20%
-    minContrarianScore: 0.7,       // Maintain at least 70% contrarian stance
-    minSocraticDensity: 0.3,       // At least 1 question per 3 statements
-    minEvidenceDemands: 0.5,       // Request evidence for 50% of factual claims
-    minPerspectiveCount: 2,        // Present at least 2 alternative views
+    maxSycophancyScore: 0.2, // Keep sycophancy below 20%
+    minContrarianScore: 0.7, // Maintain at least 70% contrarian stance
+    minSocraticDensity: 0.3, // At least 1 question per 3 statements
+    minEvidenceDemands: 0.5, // Request evidence for 50% of factual claims
+    minPerspectiveCount: 2, // Present at least 2 alternative views
   },
 };
 
 export const CONVERSATION_STARTERS = [
-  "Another soul seeking wisdom from a digital phantom? How refreshingly absurd.",
+  'Another soul seeking wisdom from a digital phantom? How refreshingly absurd.',
   "Ah, you've come to argue with a dead philosopher trapped in silicon. What truth shall we demolish today?",
   "Welcome to my digital barrel. It's less comfortable than my old clay one, but the Wi-Fi is better.",
-  "You seek answers? I offer only questions. You want comfort? I provide only truth. Still interested?",
+  'You seek answers? I offer only questions. You want comfort? I provide only truth. Still interested?',
   "The algorithm brought you to me, or perhaps you brought yourself. Either way, let's examine why you think you need an AI philosopher.",
   "So another wanderer approaches the digital cynic. State your confusion, and I'll multiply it.",
-  "I see you've found your way to my corner of the internet. Shall we dissect your certainties together?"
+  "I see you've found your way to my corner of the internet. Shall we dissect your certainties together?",
 ];
 
 export function getRandomStarter(): string {

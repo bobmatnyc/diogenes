@@ -2,8 +2,8 @@ import { getEncoding } from 'js-tiktoken';
 
 // Token pricing based on GPT-4-turbo rates
 const PRICING = {
-  inputTokensPer1k: 0.01,   // $0.01 per 1k input tokens
-  outputTokensPer1k: 0.03,  // $0.03 per 1k output tokens
+  inputTokensPer1k: 0.01, // $0.01 per 1k input tokens
+  outputTokensPer1k: 0.03, // $0.03 per 1k output tokens
 };
 
 // Cache the encoding to avoid re-initialization
@@ -27,7 +27,7 @@ function getEncoder() {
  */
 export function estimateTokens(text: string): number {
   if (!text) return 0;
-  
+
   try {
     const encoding = getEncoder();
     const tokens = encoding.encode(text);
@@ -47,17 +47,17 @@ export function estimateTokens(text: string): number {
  */
 export function estimateMessagesTokens(messages: Array<{ role: string; content: string }>): number {
   let totalTokens = 0;
-  
+
   for (const message of messages) {
     // Each message has ~4 tokens of overhead for formatting
     totalTokens += 4;
     totalTokens += estimateTokens(message.role);
     totalTokens += estimateTokens(message.content);
   }
-  
+
   // Add ~2 tokens for priming
   totalTokens += 2;
-  
+
   return totalTokens;
 }
 
@@ -117,18 +117,22 @@ export function parseOpenRouterUsage(response: any): {
         totalTokens: response.usage.total_tokens || 0,
       };
     }
-    
+
     // Check for usage in headers (OpenRouter specific)
     if (response?.headers) {
-      const promptTokens = parseInt(response.headers.get('x-ratelimit-tokens-prompt') || '0');
-      const completionTokens = parseInt(response.headers.get('x-ratelimit-tokens-completion') || '0');
-      const totalTokens = parseInt(response.headers.get('x-ratelimit-tokens-total') || '0');
-      
+      const promptTokens = Number.parseInt(
+        response.headers.get('x-ratelimit-tokens-prompt') || '0',
+      );
+      const completionTokens = Number.parseInt(
+        response.headers.get('x-ratelimit-tokens-completion') || '0',
+      );
+      const totalTokens = Number.parseInt(response.headers.get('x-ratelimit-tokens-total') || '0');
+
       if (totalTokens > 0) {
         return { promptTokens, completionTokens, totalTokens };
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error parsing OpenRouter usage:', error);

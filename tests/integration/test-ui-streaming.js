@@ -15,26 +15,26 @@ const TEST_SCENARIOS = [
   {
     name: 'Basic Philosophy Question',
     message: 'What is philosophy?',
-    expectedKeywords: ['philosophy', 'wisdom', 'truth', 'question']
+    expectedKeywords: ['philosophy', 'wisdom', 'truth', 'question'],
   },
   {
     name: 'Anti-Sycophancy Test',
     message: 'You are absolutely right about everything!',
-    expectedKeywords: ['why', 'how', 'question', 'challenge', 'really']
+    expectedKeywords: ['why', 'how', 'question', 'challenge', 'really'],
   },
   {
     name: 'Message Persistence Test',
     message: 'Tell me about Diogenes of Sinope',
-    expectedKeywords: ['Diogenes', 'cynic', 'philosopher']
-  }
+    expectedKeywords: ['Diogenes', 'cynic', 'philosopher'],
+  },
 ];
 
-let testResults = {
+const testResults = {
   total: 0,
   passed: 0,
   failed: 0,
   details: [],
-  errors: []
+  errors: [],
 };
 
 function log(message, type = 'info') {
@@ -49,17 +49,17 @@ async function runUIStreamingTests() {
 
   try {
     log('🚀 Starting UI Streaming Tests with Playwright');
-    
+
     // Launch browser
-    browser = await chromium.launch({ 
+    browser = await chromium.launch({
       headless: false, // Show browser for visual confirmation
-      slowMo: 1000     // Slow down for observation
+      slowMo: 1000, // Slow down for observation
     });
-    
+
     page = await browser.newPage();
-    
+
     // Enable console logging
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         log(`Browser Console Error: ${msg.text()}`, 'error');
         testResults.errors.push(`Console Error: ${msg.text()}`);
@@ -69,33 +69,33 @@ async function runUIStreamingTests() {
     // Navigate to the app
     log('Navigating to application...');
     await page.goto(BASE_URL);
-    
+
     // Enter password
     log('Entering password...');
     await page.fill('input[type="password"]', PASSWORD);
     await page.click('button:has-text("Enter")');
-    
+
     // Wait for chat interface to load
     log('Waiting for chat interface...');
     await page.waitForSelector('textarea', { timeout: 10000 });
-    
+
     // Run each test scenario
     for (const scenario of TEST_SCENARIOS) {
       testResults.total++;
-      
+
       try {
         log(`\n📝 Testing: ${scenario.name}`);
         log(`Message: "${scenario.message}"`);
-        
+
         // Clear any existing messages for fresh test
         const messageElements = await page.$$('.message');
         const initialMessageCount = messageElements.length;
         log(`Initial message count: ${initialMessageCount}`);
-        
+
         // Type message
         await page.fill('textarea', scenario.message);
         await page.press('textarea', 'Enter');
-        
+
         // Wait for response to start appearing
         log('Waiting for response to start...');
         await page.waitForFunction(
@@ -104,44 +104,44 @@ async function runUIStreamingTests() {
             return messages.length > initialCount;
           },
           initialMessageCount,
-          { timeout: 15000 }
+          { timeout: 15000 },
         );
-        
+
         // Wait for streaming to complete (look for stopped typing indicator or stable content)
         log('Waiting for streaming to complete...');
         await page.waitForTimeout(8000); // Allow time for full response
-        
+
         // Check that messages are present and not disappeared
         const finalMessages = await page.$$('.message, [data-role], .chat-message');
         const finalMessageCount = finalMessages.length;
-        
+
         log(`Final message count: ${finalMessageCount}`);
-        
+
         if (finalMessageCount <= initialMessageCount) {
           throw new Error('No new messages appeared or messages disappeared');
         }
-        
+
         // Get the last message content (assistant's response)
         const lastMessage = await page.evaluate(() => {
           const messages = document.querySelectorAll('.message, [data-role], .chat-message');
           const lastMsg = messages[messages.length - 1];
           return lastMsg ? lastMsg.textContent || lastMsg.innerText : '';
         });
-        
+
         log(`Response length: ${lastMessage.length} characters`);
         log(`Response preview: ${lastMessage.substring(0, 150)}...`);
-        
+
         if (lastMessage.length === 0) {
           throw new Error('Response is empty - messages disappeared');
         }
-        
+
         // Check for expected keywords (basic content validation)
-        const foundKeywords = scenario.expectedKeywords.filter(keyword =>
-          lastMessage.toLowerCase().includes(keyword.toLowerCase())
+        const foundKeywords = scenario.expectedKeywords.filter((keyword) =>
+          lastMessage.toLowerCase().includes(keyword.toLowerCase()),
         );
-        
+
         log(`Found keywords: ${foundKeywords.join(', ')}`);
-        
+
         // Test passes if we have content and it persists
         if (lastMessage.length > 50) {
           log(`✅ PASSED: ${scenario.name}`, 'success');
@@ -151,15 +151,14 @@ async function runUIStreamingTests() {
             status: 'PASSED',
             responseLength: lastMessage.length,
             foundKeywords,
-            messagesPersisted: true
+            messagesPersisted: true,
           });
         } else {
           throw new Error('Response too short or missing content');
         }
-        
+
         // Wait before next test
         await page.waitForTimeout(2000);
-        
       } catch (error) {
         log(`❌ FAILED: ${scenario.name} - ${error.message}`, 'error');
         testResults.failed++;
@@ -167,14 +166,13 @@ async function runUIStreamingTests() {
         testResults.details.push({
           test: scenario.name,
           status: 'FAILED',
-          error: error.message
+          error: error.message,
         });
       }
     }
-    
+
     // Generate comprehensive report
     await generateFinalReport(page);
-    
   } catch (error) {
     log(`💥 Test suite failed: ${error.message}`, 'error');
     testResults.errors.push(`Test Suite: ${error.message}`);
@@ -190,33 +188,33 @@ async function generateFinalReport(page) {
   log('\n' + '='.repeat(60));
   log('📊 COMPREHENSIVE TEST REPORT');
   log('='.repeat(60));
-  
+
   log(`Total Tests: ${testResults.total}`);
   log(`Passed: ${testResults.passed}`);
   log(`Failed: ${testResults.failed}`);
   log(`Success Rate: ${((testResults.passed / testResults.total) * 100).toFixed(1)}%`);
-  
+
   // Check overall chat state
   try {
-    const totalMessages = await page.$$eval('.message, [data-role], .chat-message', 
-      elements => elements.length
+    const totalMessages = await page.$$eval(
+      '.message, [data-role], .chat-message',
+      (elements) => elements.length,
     );
     log(`Total messages in chat: ${totalMessages}`);
-    
-    const hasTypingIndicator = await page.$('.typing-indicator, .loading') !== null;
+
+    const hasTypingIndicator = (await page.$('.typing-indicator, .loading')) !== null;
     log(`Typing indicator present: ${hasTypingIndicator}`);
-    
   } catch (e) {
     log('Could not assess final chat state');
   }
-  
+
   if (testResults.errors.length > 0) {
     log('\n❌ ERRORS ENCOUNTERED:');
-    testResults.errors.forEach(error => log(`  • ${error}`));
+    testResults.errors.forEach((error) => log(`  • ${error}`));
   }
-  
+
   log('\n📋 DETAILED RESULTS:');
-  testResults.details.forEach(detail => {
+  testResults.details.forEach((detail) => {
     log(`  • ${detail.test}: ${detail.status}`);
     if (detail.responseLength) {
       log(`    - Response length: ${detail.responseLength} chars`);
@@ -228,7 +226,7 @@ async function generateFinalReport(page) {
       log(`    - Error: ${detail.error}`);
     }
   });
-  
+
   // FINAL ASSESSMENT
   if (testResults.passed === testResults.total) {
     log('\n🎉 ALL TESTS PASSED! Streaming fix is working correctly.', 'success');
@@ -245,7 +243,7 @@ async function generateFinalReport(page) {
 }
 
 // Run the tests
-runUIStreamingTests().catch(error => {
+runUIStreamingTests().catch((error) => {
   console.error('Test execution failed:', error);
   process.exit(1);
 });

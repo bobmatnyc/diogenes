@@ -12,18 +12,20 @@ export default function SignInPage() {
             The Digital Cynic awaits your questions
           </p>
         </div>
-        
-        <SignIn 
+
+        <SignIn
           appearance={{
             elements: {
-              rootBox: "w-full",
-              card: "shadow-lg",
-              headerTitle: "hidden",
-              headerSubtitle: "hidden",
-              socialButtonsBlockButton: "w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200",
-              formButtonPrimary: "w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
-              footerActionLink: "text-indigo-600 hover:text-indigo-500",
-            }
+              rootBox: 'w-full',
+              card: 'shadow-lg',
+              headerTitle: 'hidden',
+              headerSubtitle: 'hidden',
+              socialButtonsBlockButton:
+                'w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200',
+              formButtonPrimary:
+                'w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
+              footerActionLink: 'text-indigo-600 hover:text-indigo-500',
+            },
           }}
           routing="path"
           path="/sign-in"

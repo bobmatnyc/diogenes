@@ -1,7 +1,7 @@
 'use client';
 
 import { formatTokens } from '@/lib/tokens';
-import { TokenUsage } from '@/types/chat';
+import type { TokenUsage } from '@/types/chat';
 
 interface MessageTokenBadgeProps {
   tokenUsage?: TokenUsage;
@@ -13,9 +13,7 @@ export default function MessageTokenBadge({ tokenUsage, role }: MessageTokenBadg
     return null;
   }
 
-  const displayTokens = role === 'user' 
-    ? tokenUsage.promptTokens 
-    : tokenUsage.completionTokens;
+  const displayTokens = role === 'user' ? tokenUsage.promptTokens : tokenUsage.completionTokens;
 
   if (displayTokens === 0) {
     return null;

@@ -40,7 +40,7 @@ export function openRouterToStream(response: any): ReadableStream<Uint8Array> {
  */
 export function createStreamingResponse(
   stream: ReadableStream<Uint8Array>,
-  headers?: HeadersInit
+  headers?: HeadersInit,
 ): Response {
   // Return a raw Response with proper streaming headers instead of using createTextStreamResponse
   return new Response(stream, {
@@ -48,9 +48,9 @@ export function createStreamingResponse(
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      ...(headers as Record<string, string>)
-    }
+      Connection: 'keep-alive',
+      ...(headers as Record<string, string>),
+    },
   });
 }
 
@@ -60,22 +60,24 @@ export function createStreamingResponse(
 export function debugStream(stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
-  
+
   return new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       const text = decoder.decode(chunk, { stream: true });
       console.log('[Stream Debug] Chunk:', JSON.stringify(text));
       controller.enqueue(chunk);
     },
-  }).readable.pipeThrough(new TransformStream({
-    start(controller) {
-      // Pass through
-    },
-    transform(chunk, controller) {
-      controller.enqueue(chunk);
-    },
-    flush(controller) {
-      console.log('[Stream Debug] Stream complete');
-    },
-  }));
+  }).readable.pipeThrough(
+    new TransformStream({
+      start(controller) {
+        // Pass through
+      },
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+      },
+      flush(controller) {
+        console.log('[Stream Debug] Stream complete');
+      },
+    }),
+  );
 }

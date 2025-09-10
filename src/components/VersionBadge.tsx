@@ -9,10 +9,10 @@ interface VersionBadgeProps {
   className?: string;
 }
 
-export default function VersionBadge({ 
+export default function VersionBadge({
   variant = 'short',
   showEnvironment = true,
-  className = ''
+  className = '',
 }: VersionBadgeProps) {
   const [version, setVersion] = useState<string>('');
   const [environment, setEnvironment] = useState<string>('');
@@ -23,14 +23,16 @@ export default function VersionBadge({
     const versionStr = variant === 'full' ? getFormattedVersion() : getShortVersion();
     setVersion(versionStr);
     setEnvironment(VERSION_INFO.environment);
-    
+
     // Format build info for tooltip
     const info = [
       `Build: ${VERSION_INFO.build.id}`,
       `Commit: ${VERSION_INFO.build.commit}`,
       `Branch: ${VERSION_INFO.build.branch}`,
       VERSION_INFO.build.dirty ? 'Has uncommitted changes' : '',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
     setBuildInfo(info);
   }, [variant]);
 
@@ -49,10 +51,7 @@ export default function VersionBadge({
 
   if (variant === 'minimal') {
     return (
-      <span 
-        className={`text-xs opacity-60 ${className}`}
-        title={buildInfo}
-      >
+      <span className={`text-xs opacity-60 ${className}`} title={buildInfo}>
         v{VERSION_INFO.version}
       </span>
     );
@@ -60,10 +59,7 @@ export default function VersionBadge({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span 
-        className="text-sm font-mono opacity-75 cursor-help"
-        title={buildInfo}
-      >
+      <span className="text-sm font-mono opacity-75 cursor-help" title={buildInfo}>
         {version}
       </span>
       {showEnvironment && environment !== 'production' && (
@@ -84,8 +80,8 @@ export function VersionFooter({ className = '' }: { className?: string }) {
     <div className={`text-center py-2 text-xs text-gray-500 dark:text-gray-400 ${className}`}>
       <div className="flex items-center justify-center gap-4">
         <VersionBadge variant="full" showEnvironment={true} />
-        <a 
-          href="/api/version" 
+        <a
+          href="/api/version"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-diogenes-primary transition-colors"

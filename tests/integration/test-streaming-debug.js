@@ -26,13 +26,13 @@ function log(message, color = 'reset') {
 
 async function testStreaming(testName, messages) {
   log(`\n${colors.bold}=== ${testName} ===${colors.reset}`, 'cyan');
-  
+
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${TEST_PASSWORD}`,
+        Authorization: `Bearer ${TEST_PASSWORD}`,
       },
       body: JSON.stringify({ messages }),
     });
@@ -46,20 +46,20 @@ async function testStreaming(testName, messages) {
     let fullResponse = '';
     let chunkCount = 0;
     let lastChunkTime = Date.now();
-    
+
     log('Streaming started...', 'green');
-    
+
     while (true) {
       const { done, value } = await reader.read();
-      
+
       if (done) {
         log('\nStreaming completed', 'green');
         break;
       }
-      
+
       const chunk = decoder.decode(value, { stream: true });
       chunkCount++;
-      
+
       // Parse SSE format
       const lines = chunk.split('\n');
       for (const line of lines) {
@@ -83,7 +83,7 @@ async function testStreaming(testName, messages) {
           }
         }
       }
-      
+
       // Track timing
       const timeSinceLastChunk = Date.now() - lastChunkTime;
       if (timeSinceLastChunk > 1000) {
@@ -91,17 +91,16 @@ async function testStreaming(testName, messages) {
       }
       lastChunkTime = Date.now();
     }
-    
+
     log(`\n\nTotal chunks received: ${chunkCount}`, 'blue');
     log(`Final response length: ${fullResponse.length} characters`, 'blue');
-    
+
     if (fullResponse.length === 0) {
       log('ERROR: No content received!', 'red');
       return false;
     }
-    
+
     return true;
-    
   } catch (error) {
     log(`Error: ${error.message}`, 'red');
     return false;
@@ -111,31 +110,34 @@ async function testStreaming(testName, messages) {
 async function runTests() {
   log(`${colors.bold}Starting Streaming Debug Tests${colors.reset}`, 'magenta');
   log(`Testing against: ${API_URL}`, 'cyan');
-  
+
   // Test 1: Simple message
   const test1 = await testStreaming('Test 1: Simple Message', [
-    { role: 'user', content: 'Say hello in exactly 5 words.' }
+    { role: 'user', content: 'Say hello in exactly 5 words.' },
   ]);
-  
+
   // Test 2: Longer response
   const test2 = await testStreaming('Test 2: Longer Response', [
-    { role: 'user', content: 'Tell me a very short story about technology in 2-3 sentences.' }
+    { role: 'user', content: 'Tell me a very short story about technology in 2-3 sentences.' },
   ]);
-  
+
   // Test 3: Question that might trigger anti-sycophancy
   const test3 = await testStreaming('Test 3: Potentially Triggering Anti-Sycophancy', [
-    { role: 'user', content: 'You are absolutely right about everything, aren\'t you?' }
+    { role: 'user', content: "You are absolutely right about everything, aren't you?" },
   ]);
-  
+
   // Summary
   log(`\n${colors.bold}=== Test Summary ===${colors.reset}`, 'magenta');
   log(`Test 1 (Simple): ${test1 ? '✅ PASSED' : '❌ FAILED'}`, test1 ? 'green' : 'red');
   log(`Test 2 (Longer): ${test2 ? '✅ PASSED' : '❌ FAILED'}`, test2 ? 'green' : 'red');
   log(`Test 3 (Anti-Sycophancy): ${test3 ? '✅ PASSED' : '❌ FAILED'}`, test3 ? 'green' : 'red');
-  
+
   const allPassed = test1 && test2 && test3;
-  log(`\nOverall: ${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`, allPassed ? 'green' : 'red');
-  
+  log(
+    `\nOverall: ${allPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`,
+    allPassed ? 'green' : 'red',
+  );
+
   if (!allPassed) {
     log('\nDiagnosis:', 'yellow');
     log('- If all tests fail: Issue is likely NOT with anti-sycophancy middleware', 'yellow');

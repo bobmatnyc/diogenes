@@ -20,17 +20,23 @@ export const MODELS = {
   // Primary model: Claude 3.5 Sonnet for superior philosophical reasoning
   CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet-20241022',
   
+  // Additional primary models for user selection
+  CLAUDE_OPUS: 'anthropic/claude-opus-4.1',
+  GPT_4_TURBO: 'openai/gpt-4-turbo',
+  GEMINI_PRO: 'google/gemini-1.5-pro-latest',
+  QWEN_CHAT: 'qwen/qwen-110b-chat',
+  GROK_2: 'xai/grok-2-latest',
+
   // Delegation models: Perplexity for web search
   PERPLEXITY_SONAR_PRO: 'perplexity/sonar-pro',
   PERPLEXITY_SONAR_ONLINE: 'perplexity/llama-3.1-sonar-large-128k-online',
-  
+
   // Fallback models
   CLAUDE_HAIKU: 'anthropic/claude-3-haiku-20240307',
-  GPT_4_TURBO: 'openai/gpt-4-turbo-preview',
 };
 
 // Default model for Diogenes responses
-export const DEFAULT_MODEL = MODELS.CLAUDE_SONNET;
+export const DEFAULT_MODEL = MODELS.CLAUDE_OPUS;
 
 export interface OpenRouterStreamOptions {
   messages: Array<{

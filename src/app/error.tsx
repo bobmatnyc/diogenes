@@ -19,8 +19,7 @@ export default function Error({
         <h1 className="text-6xl font-bold text-red-500 mb-4">500</h1>
         <h2 className="text-2xl font-semibold mb-4">Something went wrong!</h2>
         <p className="text-gray-300 mb-8 max-w-md mx-auto">
-          Even philosophers encounter unexpected errors. 
-          Let's try to find wisdom again.
+          Even philosophers encounter unexpected errors. Let's try to find wisdom again.
         </p>
         <button
           onClick={reset}

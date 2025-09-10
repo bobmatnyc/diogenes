@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getVersionReport, getVersionHeaders } from '@/lib/version';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getVersionHeaders, getVersionReport } from '@/lib/version';
 
 // Use edge runtime for consistency
 export const runtime = 'edge';
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     // Get the full version report
     const versionReport = getVersionReport();
-    
+
     // Add request metadata
     const metadata = {
       ...versionReport,
@@ -32,10 +32,10 @@ export async function GET(req: NextRequest) {
         runtime: 'edge',
       },
     };
-    
+
     // Get version headers for response
     const headers = getVersionHeaders();
-    
+
     // Return JSON response with version headers
     return NextResponse.json(metadata, {
       status: 200,
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error generating version report:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Failed to generate version report',
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }
@@ -71,9 +71,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    
+
     const versionReport = getVersionReport();
-    
+
     const response = {
       ...versionReport,
       health: {
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
       },
       echo: body,
     };
-    
+
     const headers = getVersionHeaders();
-    
+
     return NextResponse.json(response, {
       status: 200,
       headers: {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Health check failed:', error);
-    
+
     return NextResponse.json(
       {
         health: {
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }

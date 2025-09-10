@@ -38,7 +38,7 @@ export interface DelegationConfig {
 export async function analyzeForDelegation(
   userMessage: string,
   conversationContext: any[] = [],
-  config: DelegationConfig = {}
+  config: DelegationConfig = {},
 ): Promise<DelegationAnalysis> {
   const { enableMockMode = false, verboseLogging = false } = config;
 
@@ -55,7 +55,7 @@ export async function analyzeForDelegation(
 
   try {
     const openrouter = getOpenRouterClient();
-    
+
     // Create a focused prompt for delegation analysis
     const analysisPrompt = `You are an assistant helping determine if a user's question requires current web information.
 
@@ -93,7 +93,7 @@ Respond in JSON format:
     });
 
     const content = response.choices[0]?.message?.content || '{}';
-    
+
     if (verboseLogging) {
       console.log('Delegation analysis:', content);
     }
@@ -102,7 +102,7 @@ Respond in JSON format:
     try {
       const analysis = JSON.parse(content) as DelegationAnalysis;
       return {
-        needsWebSearch: analysis.needsWebSearch || false,
+        needsWebSearch: analysis.needsWebSearch,
         searchQuery: analysis.searchQuery,
         reason: analysis.reason,
         confidence: analysis.confidence || 0.5,
@@ -137,13 +137,9 @@ Respond in JSON format:
  */
 export async function delegateToPerplexity(
   searchQuery: string,
-  config: DelegationConfig = {}
+  config: DelegationConfig = {},
 ): Promise<SearchResult> {
-  const { 
-    enableMockMode = false, 
-    searchTimeout = 10000, 
-    verboseLogging = false 
-  } = config;
+  const { enableMockMode = false, searchTimeout = 10000, verboseLogging = false } = config;
 
   if (enableMockMode) {
     // Return mock search results for testing
@@ -160,9 +156,17 @@ export async function delegateToPerplexity(
 
   try {
     const openrouter = getOpenRouterClient();
-    
+
     // Create a search-optimized prompt for Perplexity
-    const searchPrompt = `Search for current, accurate information about: ${searchQuery}
+    const searchPrompt = `🔴 CRITICAL: YOU ARE FORBIDDEN TO MAKE ANYTHING UP 🔴
+Search for current, accurate information about: ${searchQuery}
+
+ABSOLUTE REQUIREMENTS:
+- Only return VERIFIED, FACTUAL information from your web search
+- NEVER fabricate or invent any facts, statistics, or events
+- If information is unavailable, explicitly state "No information found"
+- Include actual sources and citations when available
+- Clearly indicate the date/recency of information
 
 Focus on:
 - Recent developments and updates
@@ -171,7 +175,7 @@ Focus on:
 - Key dates and figures
 - Authoritative sources
 
-Provide a comprehensive but concise summary.`;
+Provide a comprehensive but concise summary with real citations.`;
 
     // Use AbortController for timeout
     const controller = new AbortController();
@@ -187,14 +191,14 @@ Provide a comprehensive but concise summary.`;
       ],
       temperature: 0.1, // Very low temperature for factual accuracy
       max_tokens: 800,
-      // @ts-ignore - OpenRouter supports additional options
+      // @ts-expect-error - OpenRouter supports additional options
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     const searchContent = response.choices[0]?.message?.content || '';
-    
+
     if (verboseLogging) {
       console.log('Perplexity search response:', searchContent);
     }
@@ -215,17 +219,17 @@ Provide a comprehensive but concise summary.`;
         timestamp: new Date().toISOString(),
       };
     }
-    
+
     console.error('Perplexity delegation error:', error);
-    
+
     // Fallback to simplified search using existing web-search tool
     try {
       const { webSearch } = await import('@/lib/tools/web-search');
-      const fallbackResults = await webSearch({ 
-        query: searchQuery, 
-        max_results: 3 
+      const fallbackResults = await webSearch({
+        query: searchQuery,
+        max_results: 3,
       });
-      
+
       return {
         content: fallbackResults,
         timestamp: new Date().toISOString(),
@@ -245,12 +249,12 @@ Provide a comprehensive but concise summary.`;
  */
 export function formatSearchResultsForContext(
   searchResult: SearchResult,
-  originalQuery: string
+  originalQuery: string,
 ): string {
-  const timestamp = searchResult.timestamp 
-    ? new Date(searchResult.timestamp).toLocaleString() 
+  const timestamp = searchResult.timestamp
+    ? new Date(searchResult.timestamp).toLocaleString()
     : 'Recent';
-  
+
   let formatted = `[Web Search Context - Retrieved: ${timestamp}]
 Query: "${originalQuery}"
 
@@ -261,7 +265,7 @@ ${searchResult.content}`;
   }
 
   formatted += '\n\n[End of Search Context]';
-  
+
   return formatted;
 }
 
@@ -271,24 +275,47 @@ ${searchResult.content}`;
 function checkForSearchTriggers(message: string): boolean {
   const searchTriggers = [
     // Time-sensitive triggers
-    'today', 'current', 'latest', 'recent', 'now', 'happening',
-    'yesterday', 'this week', 'this month', 'this year',
+    'today',
+    'current',
+    'latest',
+    'recent',
+    'now',
+    'happening',
+    'yesterday',
+    'this week',
+    'this month',
+    'this year',
     // Specific years that indicate current info
-    '2024', '2025',
+    '2024',
+    '2025',
     // News and events
-    'news', 'update', 'announcement', 'breaking',
+    'news',
+    'update',
+    'announcement',
+    'breaking',
     // Market and finance
-    'price of', 'stock', 'bitcoin', 'crypto', 'market',
+    'price of',
+    'stock',
+    'bitcoin',
+    'crypto',
+    'market',
     // Events and competitions
-    'who won', 'election', 'results', 'score',
+    'who won',
+    'election',
+    'results',
+    'score',
     // Weather and location
-    'weather', 'temperature', 'forecast',
+    'weather',
+    'temperature',
+    'forecast',
     // Specific queries
-    'what happened', 'status of', 'how much',
+    'what happened',
+    'status of',
+    'how much',
   ];
-  
+
   const lowerMessage = message.toLowerCase();
-  return searchTriggers.some(trigger => lowerMessage.includes(trigger));
+  return searchTriggers.some((trigger) => lowerMessage.includes(trigger));
 }
 
 /**
@@ -300,13 +327,13 @@ function extractSearchQuery(message: string): string {
     .replace(/^(what|who|when|where|why|how|is|are|was|were|do|does|did)\s+/gi, '')
     .replace(/\?/g, '')
     .trim();
-  
+
   // Limit query length for better search results
   const words = cleanedQuery.split(/\s+/);
   if (words.length > 10) {
     return words.slice(0, 10).join(' ');
   }
-  
+
   return cleanedQuery;
 }
 
@@ -315,15 +342,15 @@ function extractSearchQuery(message: string): string {
  */
 function extractSources(content: string): string[] {
   const sources: string[] = [];
-  
+
   // Look for URLs in the content
   const urlRegex = /https?:\/\/[^\s)]+/g;
   const matches = content.match(urlRegex);
-  
+
   if (matches) {
     sources.push(...matches.slice(0, 5)); // Limit to 5 sources
   }
-  
+
   // Also look for domain names mentioned
   const domainRegex = /(?:from|source:|via)\s+([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
   let domainMatch;
@@ -332,7 +359,7 @@ function extractSources(content: string): string[] {
       sources.push(domainMatch[1]);
     }
   }
-  
+
   return sources;
 }
 
@@ -341,37 +368,33 @@ function extractSources(content: string): string[] {
  */
 export async function orchestrateHybridResponse(
   messages: any[],
-  config: DelegationConfig = {}
-): Promise<{ 
-  enhancedMessages: any[], 
-  searchPerformed: boolean,
-  searchContext?: string 
+  config: DelegationConfig = {},
+): Promise<{
+  enhancedMessages: any[];
+  searchPerformed: boolean;
+  searchContext?: string;
 }> {
   const { verboseLogging = false } = config;
-  
+
   const lastMessage = messages[messages.length - 1];
   if (!lastMessage || lastMessage.role !== 'user') {
-    return { 
-      enhancedMessages: messages, 
-      searchPerformed: false 
+    return {
+      enhancedMessages: messages,
+      searchPerformed: false,
     };
   }
 
   // Phase 1: Analyze if delegation is needed
-  const analysis = await analyzeForDelegation(
-    lastMessage.content,
-    messages,
-    config
-  );
+  const analysis = await analyzeForDelegation(lastMessage.content, messages, config);
 
   if (verboseLogging) {
     console.log('Delegation decision:', analysis);
   }
 
   if (!analysis.needsWebSearch || analysis.confidence < 0.4) {
-    return { 
-      enhancedMessages: messages, 
-      searchPerformed: false 
+    return {
+      enhancedMessages: messages,
+      searchPerformed: false,
     };
   }
 
@@ -381,7 +404,7 @@ export async function orchestrateHybridResponse(
 
   // Phase 3: Format and inject search results
   const searchContext = formatSearchResultsForContext(searchResult, searchQuery);
-  
+
   // Create enhanced messages with search context
   const enhancedMessages = [
     ...messages.slice(0, -1),

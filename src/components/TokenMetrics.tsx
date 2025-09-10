@@ -1,7 +1,7 @@
 'use client';
 
-import { formatTokens, formatCost } from '@/lib/tokens';
-import { ChatSession } from '@/types/chat';
+import { formatCost, formatTokens } from '@/lib/tokens';
+import type { ChatSession } from '@/types/chat';
 
 interface TokenMetricsProps {
   session: ChatSession | null;
@@ -28,7 +28,7 @@ export default function TokenMetrics({ session }: TokenMetricsProps) {
         </svg>
         <span className="font-medium">{formatTokens(session.totalTokens)}</span>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <svg
           className="w-4 h-4 opacity-75"

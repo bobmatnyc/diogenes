@@ -1,6 +1,7 @@
 'use client';
 
-import { useUser, SignIn, UserButton } from '@clerk/nextjs';
+import { SignIn, UserButton, useUser } from '@clerk/nextjs';
+import { isDevelopment } from '@/lib/env';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -9,10 +10,26 @@ interface AuthGateProps {
 
 /**
  * Authentication gate component using Clerk with Google OAuth
- * Protects routes and provides sign-in UI when authentication is required
+ * In development: Bypasses authentication and renders children directly
+ * In production: Protects routes and provides sign-in UI when authentication is required
  */
 export default function AuthGate({ children, requireAuth = false }: AuthGateProps) {
   const { isLoaded, isSignedIn, user } = useUser();
+
+  // In development mode, bypass authentication entirely
+  if (isDevelopment()) {
+    return (
+      <>
+        {/* Show development mode indicator */}
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-semibold">
+            DEV MODE: Bob
+          </div>
+        </div>
+        {children}
+      </>
+    );
+  }
 
   // Show loading state while Clerk is initializing
   if (!isLoaded) {
@@ -42,25 +59,28 @@ export default function AuthGate({ children, requireAuth = false }: AuthGateProp
               Sign in to engage in philosophical discourse
             </p>
           </div>
-          
+
           <div className="flex justify-center">
-            <SignIn 
+            <SignIn
               appearance={{
                 elements: {
-                  rootBox: "w-full",
-                  card: "shadow-none bg-transparent",
-                  headerTitle: "hidden",
-                  headerSubtitle: "hidden",
-                  socialButtonsBlockButton: "w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200",
-                  formButtonPrimary: "w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
-                  footerActionLink: "text-indigo-600 hover:text-indigo-500",
-                  identityPreviewText: "text-gray-600 dark:text-gray-400",
-                  identityPreviewEditButton: "text-indigo-600 hover:text-indigo-500",
-                  formFieldLabel: "text-gray-700 dark:text-gray-300",
-                  formFieldInput: "mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white",
-                  dividerLine: "bg-gray-300 dark:bg-gray-700",
-                  dividerText: "text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 px-2",
-                }
+                  rootBox: 'w-full',
+                  card: 'shadow-none bg-transparent',
+                  headerTitle: 'hidden',
+                  headerSubtitle: 'hidden',
+                  socialButtonsBlockButton:
+                    'w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200',
+                  formButtonPrimary:
+                    'w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
+                  footerActionLink: 'text-indigo-600 hover:text-indigo-500',
+                  identityPreviewText: 'text-gray-600 dark:text-gray-400',
+                  identityPreviewEditButton: 'text-indigo-600 hover:text-indigo-500',
+                  formFieldLabel: 'text-gray-700 dark:text-gray-300',
+                  formFieldInput:
+                    'mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white',
+                  dividerLine: 'bg-gray-300 dark:bg-gray-700',
+                  dividerText: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 px-2',
+                },
               }}
               routing="path"
               path="/sign-in"
@@ -88,14 +108,14 @@ export default function AuthGate({ children, requireAuth = false }: AuthGateProp
     <>
       {isSignedIn && (
         <div className="fixed top-4 right-4 z-50">
-          <UserButton 
+          <UserButton
             afterSignOutUrl="/"
             appearance={{
               elements: {
-                avatarBox: "h-10 w-10",
-                userButtonPopoverCard: "shadow-lg",
-                userButtonPopoverActionButton: "hover:bg-gray-100 dark:hover:bg-gray-800"
-              }
+                avatarBox: 'h-10 w-10',
+                userButtonPopoverCard: 'shadow-lg',
+                userButtonPopoverActionButton: 'hover:bg-gray-100 dark:hover:bg-gray-800',
+              },
             }}
           />
         </div>

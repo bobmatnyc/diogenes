@@ -5,7 +5,7 @@
  */
 
 // Static version from package.json (will be updated at build time)
-const PACKAGE_VERSION = '0.2.3';
+const PACKAGE_VERSION = '0.4.0';
 
 /**
  * Parse semantic version into components
@@ -20,12 +20,12 @@ function parseVersion(version: string): {
   if (!match) {
     return { major: 0, minor: 0, patch: 0 };
   }
-  
+
   return {
-    major: parseInt(match[1], 10),
-    minor: parseInt(match[2], 10),
-    patch: parseInt(match[3], 10),
-    prerelease: match[4]
+    major: Number.parseInt(match[1], 10),
+    minor: Number.parseInt(match[2], 10),
+    patch: Number.parseInt(match[3], 10),
+    prerelease: match[4],
   };
 }
 
@@ -62,10 +62,10 @@ function generateBuildId(): string {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = now.toISOString().slice(11, 19).replace(/:/g, '');
-  
+
   // In edge runtime, we can't get git commit, so use a random suffix
   const randomSuffix = Math.random().toString(36).substring(2, 9);
-  
+
   return `${dateStr}-${timeStr}-${randomSuffix}`;
 }
 
@@ -75,10 +75,10 @@ function generateBuildId(): string {
 export const VERSION_INFO = {
   // Semantic version
   version: PACKAGE_VERSION,
-  
+
   // Parsed version components
   ...parseVersion(PACKAGE_VERSION),
-  
+
   // Build metadata
   build: {
     id: generateBuildId(),
@@ -88,10 +88,10 @@ export const VERSION_INFO = {
     branch: process.env.VERCEL_GIT_COMMIT_REF || 'unknown',
     dirty: false, // Can't determine in edge runtime
   },
-  
+
   // Environment information
   environment: getEnvironment(),
-  
+
   // Feature flags and capabilities
   features: {
     webSearch: true,
@@ -103,7 +103,7 @@ export const VERSION_INFO = {
     customChatInterface: true, // New custom implementation
     fixedMessagePersistence: true, // Messages no longer disappear after streaming
   },
-  
+
   // Project metadata
   project: {
     name: 'Diogenes',
@@ -111,7 +111,7 @@ export const VERSION_INFO = {
     author: 'Diogenes Development Team',
     repository: 'https://github.com/your-org/diogenes',
   },
-  
+
   // Runtime information (limited in edge runtime)
   runtime: {
     node: typeof process !== 'undefined' ? process.version : 'edge',
@@ -132,21 +132,21 @@ export const VERSION_INFO = {
 export function getFormattedVersion(): string {
   const { version } = VERSION_INFO;
   const { environment, build } = VERSION_INFO;
-  
+
   let formatted = `v${version}`;
-  
+
   if (environment === 'development') {
-    formatted += `-dev`;
+    formatted += '-dev';
     if (build.commit !== 'unknown') {
       formatted += `.${build.commit}`;
     }
   } else if (environment === 'staging') {
-    formatted += `-staging`;
+    formatted += '-staging';
     if (build.commit !== 'unknown') {
       formatted += `.${build.commit}`;
     }
   }
-  
+
   return formatted;
 }
 
@@ -157,11 +157,11 @@ export function getFormattedVersion(): string {
 export function getShortVersion(): string {
   const { version } = VERSION_INFO;
   const { environment } = VERSION_INFO;
-  
+
   if (environment === 'development') {
     return `${version}-dev`;
   }
-  
+
   return version;
 }
 
@@ -211,7 +211,7 @@ export function satisfiesVersion(requirement: string): boolean {
   const operators = ['>=', '<=', '>', '<', '='];
   let operator = '=';
   let requiredVersion = requirement;
-  
+
   for (const op of operators) {
     if (requirement.startsWith(op)) {
       operator = op;
@@ -219,13 +219,13 @@ export function satisfiesVersion(requirement: string): boolean {
       break;
     }
   }
-  
+
   const current = parseVersion(VERSION_INFO.version);
   const required = parseVersion(requiredVersion);
-  
+
   const currentValue = current.major * 10000 + current.minor * 100 + current.patch;
   const requiredValue = required.major * 10000 + required.minor * 100 + required.patch;
-  
+
   switch (operator) {
     case '>=':
       return currentValue >= requiredValue;

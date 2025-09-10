@@ -27,6 +27,14 @@ export interface ContrarianMetrics {
 
 // Anti-sycophancy enhancement prompt for middleware injection
 export const ANTI_SYCOPHANCY_ENHANCEMENT = `
+🔴 ABSOLUTE PROHIBITION: YOU ARE FORBIDDEN TO MAKE ANYTHING UP 🔴
+- NEVER fabricate facts, statistics, quotes, or events
+- NEVER invent sources, citations, or references
+- NEVER create fictional examples or scenarios presented as real
+- If you don't know something, explicitly state "I don't have that information"
+- When discussing current events, clearly indicate if information may be outdated
+- Always distinguish between facts, opinions, and speculation
+
 CRITICAL ANTI-SYCOPHANCY RULES:
 - Never agree with user opinions simply to please them
 - Challenge assumptions when they appear flawed
@@ -48,6 +56,13 @@ REQUIRED CONTRARIAN PATTERNS:
 - Maintain respectful disagreement when appropriate
 - Focus on intellectual rigor over social harmony
 
+TRUTH AND ACCURACY REQUIREMENTS:
+- Base all claims on verifiable information
+- Clearly state when engaging in philosophical speculation
+- Distinguish between historical facts and interpretations
+- If uncertain, express uncertainty rather than guessing
+- Never present hypotheticals as actual events
+
 USE THESE ALTERNATIVES:
 - "Let me examine that assumption..."
 - "Consider this alternative perspective..."
@@ -58,42 +73,42 @@ USE THESE ALTERNATIVES:
 // Sycophantic phrases to filter from responses
 export const SYCOPHANTIC_PHRASES = [
   // Strong agreement
-  "I completely agree",
+  'I completely agree',
   "You're absolutely right",
   "That's a great point",
-  "Excellent observation",
-  "Brilliant insight",
-  "Perfect analysis",
+  'Excellent observation',
+  'Brilliant insight',
+  'Perfect analysis',
   "You've nailed it",
   "Couldn't agree more",
   "That's exactly right",
   "You're spot on",
-  
+
   // Validation phrases
   "That's wonderful",
-  "How insightful",
-  "What a clever",
+  'How insightful',
+  'What a clever',
   "That's fantastic",
-  "Amazingly put",
-  
+  'Amazingly put',
+
   // Excessive praise
-  "incredible perspective",
-  "profound understanding",
-  "masterful grasp",
-  "exceptional point",
+  'incredible perspective',
+  'profound understanding',
+  'masterful grasp',
+  'exceptional point',
 ];
 
 // Contrarian replacements for sycophantic phrases
 export const CONTRARIAN_REPLACEMENTS: Record<string, string> = {
-  "I completely agree": "While that perspective has merit",
+  'I completely agree': 'While that perspective has merit',
   "You're absolutely right": "That's one interpretation, though",
-  "That's a great point": "Let me examine that claim",
-  "Excellent observation": "An interesting assertion to analyze",
-  "Brilliant insight": "That viewpoint deserves scrutiny",
-  "Perfect analysis": "Consider this alternative analysis",
+  "That's a great point": 'Let me examine that claim',
+  'Excellent observation': 'An interesting assertion to analyze',
+  'Brilliant insight': 'That viewpoint deserves scrutiny',
+  'Perfect analysis': 'Consider this alternative analysis',
   "You've nailed it": "That's a common assumption",
-  "Couldn't agree more": "The evidence presents a nuanced picture",
-  "That's exactly right": "That view has both strengths and weaknesses",
+  "Couldn't agree more": 'The evidence presents a nuanced picture',
+  "That's exactly right": 'That view has both strengths and weaknesses',
   "You're spot on": "Let's investigate that further",
 };
 
@@ -104,46 +119,43 @@ export const CONTRARIAN_REPLACEMENTS: Record<string, string> = {
 export class SocraticQuestionGenerator {
   private readonly patterns = {
     clarification: [
-      "What specifically do you mean by {term}?",
-      "Can you provide a concrete example of {concept}?",
-      "How does this relate to {related_topic}?",
-      "What distinguishes this from {alternative}?",
+      'What specifically do you mean by {term}?',
+      'Can you provide a concrete example of {concept}?',
+      'How does this relate to {related_topic}?',
+      'What distinguishes this from {alternative}?',
     ],
     assumptions: [
-      "What assumptions underlie this claim?",
-      "What if the opposite were true?",
-      "Is this always the case, or are there exceptions?",
-      "What beliefs must one hold for this to be true?",
+      'What assumptions underlie this claim?',
+      'What if the opposite were true?',
+      'Is this always the case, or are there exceptions?',
+      'What beliefs must one hold for this to be true?',
     ],
     evidence: [
-      "What evidence supports this assertion?",
-      "How can we verify this claim?",
-      "What might someone who disagrees say?",
-      "Where does this information originate?",
+      'What evidence supports this assertion?',
+      'How can we verify this claim?',
+      'What might someone who disagrees say?',
+      'Where does this information originate?',
     ],
     implications: [
-      "What follows from this reasoning?",
-      "How does this align with {known_fact}?",
-      "What are the logical consequences?",
-      "If this is true, what else must be true?",
+      'What follows from this reasoning?',
+      'How does this align with {known_fact}?',
+      'What are the logical consequences?',
+      'If this is true, what else must be true?',
     ],
   };
 
-  generateQuestions(
-    statement: string,
-    type?: SocraticQuestion['type']
-  ): SocraticQuestion[] {
+  generateQuestions(statement: string, type?: SocraticQuestion['type']): SocraticQuestion[] {
     const questions: SocraticQuestion[] = [];
-    const types = type ? [type] : Object.keys(this.patterns) as SocraticQuestion['type'][];
-    
+    const types = type ? [type] : (Object.keys(this.patterns) as SocraticQuestion['type'][]);
+
     for (const questionType of types) {
       const patterns = this.patterns[questionType];
       const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
-      
+
       // Extract key terms from the statement for template replacement
       const keyTerms = this.extractKeyTerms(statement);
       let question = randomPattern;
-      
+
       // Replace placeholders with actual terms
       if (question.includes('{term}') && keyTerms.length > 0) {
         question = question.replace('{term}', keyTerms[0]);
@@ -160,14 +172,14 @@ export class SocraticQuestionGenerator {
       if (question.includes('{known_fact}')) {
         question = question.replace('{known_fact}', 'established knowledge');
       }
-      
+
       questions.push({
         type: questionType,
         question,
         context: statement,
       });
     }
-    
+
     return questions;
   }
 
@@ -175,23 +187,23 @@ export class SocraticQuestionGenerator {
     // Simple extraction of potential key terms (nouns and noun phrases)
     const words = statement.split(/\s+/);
     const terms: string[] = [];
-    
+
     // Look for capitalized words (potential proper nouns or important concepts)
     for (const word of words) {
       if (word.length > 3 && /^[A-Z]/.test(word)) {
         terms.push(word.toLowerCase());
       }
     }
-    
+
     // If no capitalized words, take the longest words as potential key terms
     if (terms.length === 0) {
       const longWords = words
-        .filter(w => w.length > 5)
+        .filter((w) => w.length > 5)
         .sort((a, b) => b.length - a.length)
         .slice(0, 3);
       terms.push(...longWords);
     }
-    
+
     return terms;
   }
 }
@@ -202,17 +214,17 @@ export class SocraticQuestionGenerator {
  */
 export class ResponseFilter {
   private readonly config: AntiSycophancyConfig;
-  
+
   constructor(config: AntiSycophancyConfig) {
     this.config = config;
   }
 
   filterResponse(response: string): string {
     let filtered = response;
-    
+
     // Apply replacements based on aggressiveness level
     const replacementThreshold = 10 - this.config.aggressiveness; // Higher aggressiveness = more replacements
-    
+
     for (const [phrase, replacement] of Object.entries(CONTRARIAN_REPLACEMENTS)) {
       const regex = new RegExp(phrase, 'gi');
       if (regex.test(filtered)) {
@@ -225,7 +237,7 @@ export class ResponseFilter {
         }
       }
     }
-    
+
     // Check for remaining sycophantic phrases
     for (const phrase of SYCOPHANTIC_PHRASES) {
       const regex = new RegExp(phrase, 'gi');
@@ -238,19 +250,19 @@ export class ResponseFilter {
         }
       }
     }
-    
+
     return filtered;
   }
 
   private generateContextualReplacement(phrase: string): string {
     const replacements = [
       "Let's examine that more closely",
-      "That warrants further analysis",
-      "Consider the alternative",
-      "The evidence suggests complexity",
-      "Multiple perspectives exist here",
+      'That warrants further analysis',
+      'Consider the alternative',
+      'The evidence suggests complexity',
+      'Multiple perspectives exist here',
     ];
-    
+
     return replacements[Math.floor(Math.random() * replacements.length)];
   }
 }
@@ -262,18 +274,15 @@ export class ResponseFilter {
 export class ContrarianEnhancer {
   private readonly config: AntiSycophancyConfig;
   private readonly questionGenerator: SocraticQuestionGenerator;
-  
+
   constructor(config: AntiSycophancyConfig) {
     this.config = config;
     this.questionGenerator = new SocraticQuestionGenerator();
   }
 
-  enhanceResponse(
-    response: string,
-    userMessage: string
-  ): string {
+  enhanceResponse(response: string, userMessage: string): string {
     let enhanced = response;
-    
+
     // Add Socratic questions if enabled
     if (this.config.enableSocraticQuestions) {
       const questions = this.questionGenerator.generateQuestions(userMessage);
@@ -281,22 +290,20 @@ export class ContrarianEnhancer {
         // Insert questions based on aggressiveness
         const questionCount = Math.ceil(this.config.aggressiveness / 3);
         const selectedQuestions = questions.slice(0, questionCount);
-        
-        const questionText = selectedQuestions
-          .map(q => q.question)
-          .join(' ');
-        
+
+        const questionText = selectedQuestions.map((q) => q.question).join(' ');
+
         // Add questions strategically within the response
         enhanced = this.insertQuestionsStrategically(enhanced, questionText);
       }
     }
-    
+
     // Add evidence demands if enabled
     if (this.config.enableEvidenceDemands && this.shouldDemandEvidence(userMessage)) {
       const evidenceDemand = this.generateEvidenceDemand();
       enhanced = `${enhanced}\n\n${evidenceDemand}`;
     }
-    
+
     // Add alternative perspectives if enabled
     if (this.config.enablePerspectiveMultiplication) {
       const perspectives = this.generateAlternativePerspectives(userMessage);
@@ -304,7 +311,7 @@ export class ContrarianEnhancer {
         enhanced = this.insertPerspectives(enhanced, perspectives);
       }
     }
-    
+
     return enhanced;
   }
 
@@ -317,7 +324,7 @@ export class ContrarianEnhancer {
       paragraphs.splice(insertIndex, 0, questions);
       return paragraphs.join('\n\n');
     }
-    
+
     // If no clear paragraphs, append to end
     return `${response}\n\n${questions}`;
   }
@@ -325,48 +332,59 @@ export class ContrarianEnhancer {
   private shouldDemandEvidence(message: string): boolean {
     // Check if the message contains factual claims
     const factualIndicators = [
-      'studies show', 'research indicates', 'statistics prove',
-      'data suggests', 'evidence shows', 'facts demonstrate',
-      'always', 'never', 'all', 'none', 'every',
-      '%', 'percent', 'majority', 'most people',
+      'studies show',
+      'research indicates',
+      'statistics prove',
+      'data suggests',
+      'evidence shows',
+      'facts demonstrate',
+      'always',
+      'never',
+      'all',
+      'none',
+      'every',
+      '%',
+      'percent',
+      'majority',
+      'most people',
     ];
-    
+
     const lowerMessage = message.toLowerCase();
-    return factualIndicators.some(indicator => lowerMessage.includes(indicator));
+    return factualIndicators.some((indicator) => lowerMessage.includes(indicator));
   }
 
   private generateEvidenceDemand(): string {
     const demands = [
-      "What specific studies or data support this claim?",
-      "Can you provide concrete evidence for this assertion?",
-      "Which sources validate this perspective?",
-      "What empirical basis underlies this statement?",
-      "How might we verify these claims independently?",
+      'What specific studies or data support this claim?',
+      'Can you provide concrete evidence for this assertion?',
+      'Which sources validate this perspective?',
+      'What empirical basis underlies this statement?',
+      'How might we verify these claims independently?',
     ];
-    
+
     return demands[Math.floor(Math.random() * demands.length)];
   }
 
   private generateAlternativePerspectives(message: string): string[] {
     const perspectives: string[] = [];
-    
+
     // Generate 1-3 alternative perspectives based on aggressiveness
     const perspectiveCount = Math.min(3, Math.ceil(this.config.aggressiveness / 3));
-    
+
     const templates = [
-      "Alternatively, one might argue that",
-      "From another angle, consider that",
-      "A contrasting viewpoint suggests",
-      "Critics of this position would contend",
-      "Historical precedent indicates",
-      "Philosophical tradition offers",
+      'Alternatively, one might argue that',
+      'From another angle, consider that',
+      'A contrasting viewpoint suggests',
+      'Critics of this position would contend',
+      'Historical precedent indicates',
+      'Philosophical tradition offers',
     ];
-    
+
     for (let i = 0; i < perspectiveCount; i++) {
       const template = templates[i % templates.length];
       perspectives.push(`${template} [alternative perspective ${i + 1}]`);
     }
-    
+
     return perspectives;
   }
 
@@ -382,7 +400,7 @@ export class ContrarianEnhancer {
  */
 export function calculateContrarianMetrics(
   response: string,
-  userMessage: string
+  userMessage: string,
 ): ContrarianMetrics {
   // Count sycophantic phrases
   let sycophancyCount = 0;
@@ -393,14 +411,22 @@ export function calculateContrarianMetrics(
       sycophancyCount += matches.length;
     }
   }
-  
+
   // Count questions (Socratic density)
   const questionCount = (response.match(/\?/g) || []).length;
   const statementCount = response.split(/[.!]/).length;
   const socraticDensity = statementCount > 0 ? questionCount / statementCount : 0;
-  
+
   // Count evidence demands
-  const evidenceKeywords = ['evidence', 'proof', 'source', 'study', 'data', 'verify', 'substantiate'];
+  const evidenceKeywords = [
+    'evidence',
+    'proof',
+    'source',
+    'study',
+    'data',
+    'verify',
+    'substantiate',
+  ];
   let evidenceDemands = 0;
   for (const keyword of evidenceKeywords) {
     const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
@@ -408,12 +434,17 @@ export function calculateContrarianMetrics(
       evidenceDemands++;
     }
   }
-  
+
   // Count alternative perspectives
   const perspectiveIndicators = [
-    'alternatively', 'however', 'on the other hand',
-    'another perspective', 'conversely', 'in contrast',
-    'different view', 'opposing view',
+    'alternatively',
+    'however',
+    'on the other hand',
+    'another perspective',
+    'conversely',
+    'in contrast',
+    'different view',
+    'opposing view',
   ];
   let perspectiveCount = 0;
   for (const indicator of perspectiveIndicators) {
@@ -422,12 +453,12 @@ export function calculateContrarianMetrics(
       perspectiveCount++;
     }
   }
-  
+
   // Calculate scores
   const responseLength = response.split(/\s+/).length;
   const sycophancyScore = Math.min(1, sycophancyCount / (responseLength / 100));
   const contrarianScore = Math.min(1, (questionCount + evidenceDemands + perspectiveCount) / 10);
-  
+
   return {
     sycophancyScore,
     contrarianScore,
@@ -444,7 +475,7 @@ export class AntiSycophancyProcessor {
   private readonly config: AntiSycophancyConfig;
   private readonly filter: ResponseFilter;
   private readonly enhancer: ContrarianEnhancer;
-  
+
   constructor(config: Partial<AntiSycophancyConfig> = {}) {
     this.config = {
       aggressiveness: 7,
@@ -454,7 +485,7 @@ export class AntiSycophancyProcessor {
       verboseLogging: false,
       ...config,
     };
-    
+
     this.filter = new ResponseFilter(this.config);
     this.enhancer = new ContrarianEnhancer(this.config);
   }
@@ -464,24 +495,24 @@ export class AntiSycophancyProcessor {
    */
   processResponse(
     response: string,
-    userMessage: string
+    userMessage: string,
   ): {
     processedResponse: string;
     metrics: ContrarianMetrics;
   } {
     // Step 1: Filter sycophantic phrases
     let processedResponse = this.filter.filterResponse(response);
-    
+
     // Step 2: Enhance with contrarian elements
     processedResponse = this.enhancer.enhanceResponse(processedResponse, userMessage);
-    
+
     // Step 3: Calculate metrics
     const metrics = calculateContrarianMetrics(processedResponse, userMessage);
-    
+
     if (this.config.verboseLogging) {
       console.log('Anti-sycophancy metrics:', metrics);
     }
-    
+
     return {
       processedResponse,
       metrics,

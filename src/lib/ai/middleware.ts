@@ -3,11 +3,11 @@
  * Transforms responses to be more contrarian and less agreeable
  */
 
-import { 
-  AntiSycophancyProcessor, 
+import {
   ANTI_SYCOPHANCY_ENHANCEMENT,
-  AntiSycophancyConfig,
-  ContrarianMetrics
+  type AntiSycophancyConfig,
+  AntiSycophancyProcessor,
+  type ContrarianMetrics,
 } from './anti-sycophancy';
 
 export interface MiddlewareConfig extends AntiSycophancyConfig {
@@ -23,7 +23,7 @@ export interface MiddlewareConfig extends AntiSycophancyConfig {
 export class AntiSycophancyMiddleware {
   private processor: AntiSycophancyProcessor;
   private config: MiddlewareConfig;
-  private lastUserMessage: string = '';
+  private lastUserMessage = '';
 
   constructor(config: Partial<MiddlewareConfig> = {}) {
     this.config = {
@@ -46,7 +46,7 @@ export class AntiSycophancyMiddleware {
    */
   async transformMessages(messages: any[]): Promise<any[]> {
     // Store the last user message for response processing
-    const userMessages = messages.filter(m => m.role === 'user');
+    const userMessages = messages.filter((m) => m.role === 'user');
     if (userMessages.length > 0) {
       this.lastUserMessage = userMessages[userMessages.length - 1].content;
     }
@@ -56,11 +56,11 @@ export class AntiSycophancyMiddleware {
     }
 
     // Check if there's already a system message
-    const hasSystemMessage = messages.some(m => m.role === 'system');
-    
+    const hasSystemMessage = messages.some((m) => m.role === 'system');
+
     if (hasSystemMessage) {
       // Enhance existing system message
-      return messages.map(message => {
+      return messages.map((message) => {
         if (message.role === 'system') {
           return {
             ...message,
@@ -69,16 +69,15 @@ export class AntiSycophancyMiddleware {
         }
         return message;
       });
-    } else {
-      // Add new system message at the beginning
-      return [
-        {
-          role: 'system',
-          content: ANTI_SYCOPHANCY_ENHANCEMENT,
-        },
-        ...messages,
-      ];
     }
+    // Add new system message at the beginning
+    return [
+      {
+        role: 'system',
+        content: ANTI_SYCOPHANCY_ENHANCEMENT,
+      },
+      ...messages,
+    ];
   }
 
   /**
@@ -93,7 +92,7 @@ export class AntiSycophancyMiddleware {
     // Process the chunk through anti-sycophancy filter
     const { processedResponse, metrics } = this.processor.processResponse(
       chunk,
-      this.lastUserMessage
+      this.lastUserMessage,
     );
 
     // Log metrics if enabled
@@ -124,7 +123,7 @@ export class AntiSycophancyMiddleware {
         // CRITICAL: Decode Uint8Array chunk to string
         // The { stream: true } option is important for handling partial UTF-8 sequences
         const text = decoder.decode(chunk, { stream: true });
-        
+
         // Add decoded text to buffer
         buffer += text;
 
@@ -132,7 +131,7 @@ export class AntiSycophancyMiddleware {
         let lastSentenceEnd = -1;
         let match;
         const regex = new RegExp(sentenceEndRegex, 'g');
-        
+
         while ((match = regex.exec(buffer)) !== null) {
           lastSentenceEnd = match.index + match[0].length;
         }
@@ -144,7 +143,7 @@ export class AntiSycophancyMiddleware {
 
           // Transform the complete text
           const transformed = this.transformChunk(completeText);
-          
+
           // CRITICAL: Encode the transformed string back to Uint8Array
           controller.enqueue(encoder.encode(transformed));
 
@@ -177,16 +176,13 @@ export class AntiSycophancyMiddleware {
    */
   async processCompleteResponse(
     response: string,
-    userMessage?: string
+    userMessage?: string,
   ): Promise<{
     response: string;
     metrics: ContrarianMetrics;
   }> {
     const messageToUse = userMessage || this.lastUserMessage;
-    const { processedResponse, metrics } = this.processor.processResponse(
-      response,
-      messageToUse
-    );
+    const { processedResponse, metrics } = this.processor.processResponse(response, messageToUse);
 
     if (this.config.logMetrics) {
       console.log('Response metrics:', metrics);
@@ -228,7 +224,7 @@ export class AntiSycophancyMiddleware {
  * Factory function to create anti-sycophancy middleware
  */
 export function createAntiSycophancyMiddleware(
-  config?: Partial<MiddlewareConfig>
+  config?: Partial<MiddlewareConfig>,
 ): AntiSycophancyMiddleware {
   return new AntiSycophancyMiddleware(config);
 }
@@ -236,15 +232,16 @@ export function createAntiSycophancyMiddleware(
 /**
  * Wrap a ReadableStream with anti-sycophancy transformation
  * This is useful for integrating with existing streaming APIs
- * 
+ *
  * CRITICAL: This function expects a ReadableStream<Uint8Array> (e.g., from OpenAIStream)
  * The middleware's createTransformStream() MUST handle Uint8Array chunks!
  * Common usage: wrapStreamWithAntiSycophancy(OpenAIStream(response))
  */
 export function wrapStreamWithAntiSycophancy(
   stream: ReadableStream<Uint8Array>, // CRITICAL: Must be Uint8Array stream!
-  config?: Partial<MiddlewareConfig>
-): ReadableStream<Uint8Array> { // Returns Uint8Array stream
+  config?: Partial<MiddlewareConfig>,
+): ReadableStream<Uint8Array> {
+  // Returns Uint8Array stream
   const middleware = createAntiSycophancyMiddleware(config);
   return stream.pipeThrough(middleware.createTransformStream());
 }
@@ -254,10 +251,10 @@ export function wrapStreamWithAntiSycophancy(
  */
 export function withAntiSycophancy<T extends (...args: any[]) => Promise<string>>(
   fn: T,
-  config?: Partial<MiddlewareConfig>
+  config?: Partial<MiddlewareConfig>,
 ): T {
   const middleware = createAntiSycophancyMiddleware(config);
-  
+
   return (async (...args: Parameters<T>): Promise<string> => {
     const response = await fn(...args);
     const { response: processed } = await middleware.processCompleteResponse(response);
@@ -272,7 +269,7 @@ export class MetricsAggregator {
   private metrics: ContrarianMetrics[] = [];
   private maxSize: number;
 
-  constructor(maxSize: number = 100) {
+  constructor(maxSize = 100) {
     this.maxSize = maxSize;
   }
 
@@ -302,7 +299,7 @@ export class MetricsAggregator {
         socraticDensity: 0,
         evidenceDemands: 0,
         perspectiveCount: 0,
-      }
+      },
     );
 
     const count = this.metrics.length;

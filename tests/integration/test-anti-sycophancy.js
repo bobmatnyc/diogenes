@@ -15,7 +15,7 @@ function createMockTransformStream() {
       let lastSentenceEnd = -1;
       let match;
       const regex = new RegExp(sentenceEndRegex, 'g');
-      
+
       while ((match = regex.exec(buffer)) !== null) {
         lastSentenceEnd = match.index + match[0].length;
       }
@@ -27,7 +27,7 @@ function createMockTransformStream() {
 
         // Log what we're processing
         console.log('Processing:', JSON.stringify(completeText));
-        
+
         // Check if the text is empty or contains certain patterns
         if (completeText.trim() === '') {
           console.log('WARNING: Empty text being enqueued!');
@@ -73,7 +73,7 @@ async function testStreaming() {
     ' you',
     ' today',
     '?',
-    ' I\'m',
+    " I'm",
     ' here',
     ' to',
     ' assist',
@@ -86,7 +86,7 @@ async function testStreaming() {
       for (const chunk of chunks) {
         controller.enqueue(chunk);
         // Simulate streaming delay
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
       controller.close();
     },

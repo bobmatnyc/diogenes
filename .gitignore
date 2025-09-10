@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+pnpm-lock.yaml
 
 # testing
 /coverage
@@ -27,6 +28,11 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.local.backup
+.env.local.sample
+
+# logs containing sensitive data
+logs/
 
 # vercel
 .vercel
@@ -34,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# biome
+.biome
+
+# vitest
+coverage

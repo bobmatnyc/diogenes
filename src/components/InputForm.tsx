@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 
 interface InputFormProps {
   onSubmit: (message: string) => void;

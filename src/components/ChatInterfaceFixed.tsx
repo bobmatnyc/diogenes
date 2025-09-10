@@ -1,37 +1,32 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
+import { useEffect, useRef, useState } from 'react';
+import { isDevelopment } from '@/lib/env';
+import { getRandomStarter } from '@/lib/prompts/core-principles';
+import { addMessageToSession, clearSession, createNewSession, getSession } from '@/lib/session';
+import { calculateCost, estimateMessagesTokens, estimateTokens } from '@/lib/tokens';
+import type { Message } from '@/types/chat';
 import MessageBubble from './MessageBubble';
 import TokenMetrics from './TokenMetrics';
 import VersionBadge, { VersionFooter } from './VersionBadge';
-import { 
-  getSession, 
-  createNewSession, 
-  addMessageToSession,
-  clearSession
-} from '@/lib/session';
-import { getRandomStarter } from '@/lib/prompts/core-principles';
-import { isDevelopment } from '@/lib/env';
-import { estimateTokens, calculateCost, estimateMessagesTokens } from '@/lib/tokens';
-import { Message } from '@/types/chat';
 
 export default function ChatInterfaceFixed() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [welcomeShown, setWelcomeShown] = useState(false);
-  
+
   // Initialize session
   const session = getSession() || createNewSession();
-  
+
   // Use the useChat hook - SIMPLIFIED VERSION with API compatibility fixes
   const chatHook = useChat({});
-  
+
   // Extract properties with API compatibility handling
   const messages = (chatHook as any).messages || [];
   const input = (chatHook as any).input || '';
   const handleInputChange = (chatHook as any).handleInputChange || ((e: any) => {});
   const handleSubmit = (chatHook as any).handleSubmit || ((e: any) => {});
-  const isLoading = (chatHook as any).isLoading || false;
+  const isLoading = (chatHook as any).isLoading;
   const setMessages = (chatHook as any).setMessages || (() => {});
 
   // Add welcome message on first load
@@ -42,11 +37,11 @@ export default function ChatInterfaceFixed() {
         role: 'assistant' as const,
         content: getRandomStarter(),
       };
-      
+
       console.log('[DEBUG] Setting welcome message');
       setMessages([welcomeMessage]);
       setWelcomeShown(true);
-      
+
       // Save welcome message to session
       const newSession = createNewSession();
       addMessageToSession(newSession, {
@@ -73,19 +68,19 @@ export default function ChatInterfaceFixed() {
     console.log('[DEBUG] Form submit triggered');
     console.log('[DEBUG] Input value:', input);
     console.log('[DEBUG] handleSubmit function:', !!handleSubmit);
-    
+
     e.preventDefault();
-    
+
     if (!input?.trim()) {
       console.log('[DEBUG] Input is empty, not submitting');
       return;
     }
-    
+
     if (!handleSubmit) {
       console.error('[DEBUG] handleSubmit is not defined!');
       return;
     }
-    
+
     // Save user message to session
     const userTokens = estimateTokens(input);
     const userMessage: Message = {
@@ -100,10 +95,10 @@ export default function ChatInterfaceFixed() {
         cost: calculateCost(userTokens, 0),
       },
     };
-    
+
     const currentSession = getSession() || createNewSession();
     addMessageToSession(currentSession, userMessage);
-    
+
     // Call the original handleSubmit
     console.log('[DEBUG] Calling handleSubmit');
     try {
@@ -133,7 +128,7 @@ export default function ChatInterfaceFixed() {
           Development Mode - Authentication Bypassed
         </div>
       )}
-      
+
       {/* Header */}
       <div className="bg-diogenes-primary text-white p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
@@ -205,7 +200,7 @@ export default function ChatInterfaceFixed() {
           </button>
         </form>
       </div>
-      
+
       {/* Version Footer */}
       <VersionFooter className="border-t" />
     </div>
