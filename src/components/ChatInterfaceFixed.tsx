@@ -16,85 +16,36 @@ import { isDevelopment } from '@/lib/env';
 import { estimateTokens, calculateCost, estimateMessagesTokens } from '@/lib/tokens';
 import { Message } from '@/types/chat';
 
-export default function ChatInterface() {
+export default function ChatInterfaceFixed() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [welcomeShown, setWelcomeShown] = useState(false);
   
   // Initialize session
   const session = getSession() || createNewSession();
   
-  // Use the useChat hook with minimal configuration
-  const chatHook = useChat({
-    onFinish: (message: any) => {
-      console.log('[DEBUG] onFinish called with message:', message);
-      // Save the assistant response to session
-      const completionTokens = estimateTokens(message.content);
-      const allMessages = [...messages, message];
-      const promptTokens = estimateMessagesTokens(allMessages.slice(0, -1).map((m: any) => ({
-        role: m.role,
-        content: m.content
-      })));
-      
-      const assistantMessage: Message = {
-        id: message.id,
-        role: 'assistant',
-        content: message.content,
-        timestamp: new Date(),
-        tokenUsage: {
-          promptTokens: promptTokens,
-          completionTokens: completionTokens,
-          totalTokens: promptTokens + completionTokens,
-          cost: calculateCost(promptTokens, completionTokens),
-        },
-      };
-      
-      // Save to session
-      const currentSession = getSession() || createNewSession();
-      addMessageToSession(currentSession, assistantMessage);
-    },
-  });
+  // Use the useChat hook - SIMPLIFIED VERSION with API compatibility fixes
+  const chatHook = useChat({});
   
-  // Access all properties via any-typed access due to API changes
+  // Extract properties with API compatibility handling
   const messages = (chatHook as any).messages || [];
   const input = (chatHook as any).input || '';
   const handleInputChange = (chatHook as any).handleInputChange || ((e: any) => {});
   const handleSubmit = (chatHook as any).handleSubmit || ((e: any) => {});
   const isLoading = (chatHook as any).isLoading || false;
-  const append = (chatHook as any).append || (() => {});
-  
-  // Debug logging for hook values
-  console.log('[DEBUG] useChat hook values:', {
-    hasMessages: !!messages,
-    messagesLength: messages?.length,
-    hasInput: input !== undefined,
-    inputValue: input,
-    hasHandleInputChange: !!handleInputChange,
-    hasHandleSubmit: !!handleSubmit,
-    isLoading,
-    hasAppend: !!append,
-    appendType: typeof append
-  });
+  const setMessages = (chatHook as any).setMessages || (() => {});
 
   // Add welcome message on first load
   useEffect(() => {
-    console.log('[DEBUG] Welcome message effect running, append:', !!append, typeof append);
-    const currentSession = getSession();
-    if (!currentSession || currentSession.messages.length === 0) {
+    if (!welcomeShown && messages.length === 0 && setMessages) {
       const welcomeMessage = {
         id: Date.now().toString(),
         role: 'assistant' as const,
         content: getRandomStarter(),
       };
       
-      if (append && typeof append === 'function') {
-        console.log('[DEBUG] Calling append with welcome message');
-        try {
-          append(welcomeMessage);
-        } catch (error) {
-          console.error('[DEBUG] Error calling append:', error);
-        }
-      } else {
-        console.error('[DEBUG] append is not a function:', append);
-      }
+      console.log('[DEBUG] Setting welcome message');
+      setMessages([welcomeMessage]);
+      setWelcomeShown(true);
       
       // Save welcome message to session
       const newSession = createNewSession();
@@ -103,7 +54,7 @@ export default function ChatInterface() {
         timestamp: new Date(),
       });
     }
-  }, [append]);
+  }, [messages, setMessages, welcomeShown]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -119,45 +70,60 @@ export default function ChatInterface() {
 
   // Custom submit handler to track user messages
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    console.log('[DEBUG] handleFormSubmit called');
+    console.log('[DEBUG] Form submit triggered');
     console.log('[DEBUG] Input value:', input);
-    console.log('[DEBUG] Is loading:', isLoading);
+    console.log('[DEBUG] handleSubmit function:', !!handleSubmit);
     
     e.preventDefault();
     
-    if (input?.trim()) {
-      console.log('[DEBUG] Input is valid, proceeding...');
-      // Save user message to session
-      const userTokens = estimateTokens(input);
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: input,
-        timestamp: new Date(),
-        tokenUsage: {
-          promptTokens: userTokens,
-          completionTokens: 0,
-          totalTokens: userTokens,
-          cost: calculateCost(userTokens, 0),
-        },
-      };
-      
-      const currentSession = getSession() || createNewSession();
-      addMessageToSession(currentSession, userMessage);
+    if (!input?.trim()) {
+      console.log('[DEBUG] Input is empty, not submitting');
+      return;
     }
     
+    if (!handleSubmit) {
+      console.error('[DEBUG] handleSubmit is not defined!');
+      return;
+    }
+    
+    // Save user message to session
+    const userTokens = estimateTokens(input);
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+      tokenUsage: {
+        promptTokens: userTokens,
+        completionTokens: 0,
+        totalTokens: userTokens,
+        cost: calculateCost(userTokens, 0),
+      },
+    };
+    
+    const currentSession = getSession() || createNewSession();
+    addMessageToSession(currentSession, userMessage);
+    
     // Call the original handleSubmit
-    console.log('[DEBUG] Calling handleSubmit from useChat hook');
+    console.log('[DEBUG] Calling handleSubmit');
     try {
       handleSubmit(e);
-      console.log('[DEBUG] handleSubmit called successfully');
+      console.log('[DEBUG] handleSubmit completed');
     } catch (error) {
-      console.error('[DEBUG] Error calling handleSubmit:', error);
+      console.error('[DEBUG] Error in handleSubmit:', error);
     }
   };
 
   // Get current session for token metrics
   const currentSession = getSession() || createNewSession();
+
+  console.log('[DEBUG] Render state:', {
+    messagesCount: messages.length,
+    inputValue: input,
+    isLoading,
+    hasHandleSubmit: !!handleSubmit,
+    hasHandleInputChange: !!handleInputChange,
+  });
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -174,7 +140,7 @@ export default function ChatInterface() {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold">Diogenes</h1>
-              <p className="text-sm opacity-90">The Digital Cynic</p>
+              <p className="text-sm opacity-90">The Digital Cynic (Fixed)</p>
             </div>
             <VersionBadge variant="minimal" showEnvironment={false} className="text-white" />
           </div>
@@ -233,7 +199,6 @@ export default function ChatInterface() {
           <button
             type="submit"
             disabled={isLoading || !input?.trim()}
-            onClick={() => console.log('[DEBUG] Send button clicked, form should submit')}
             className="px-6 py-2 bg-diogenes-primary text-white rounded-lg hover:bg-diogenes-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send

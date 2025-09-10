@@ -1,8 +1,15 @@
 import { NextRequest } from 'next/server';
 import { getOpenRouterClient, DEFAULT_MODEL } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { createStreamingResponse, openRouterToStream } from '@/lib/ai/streaming-fix';
 import { orchestrateHybridResponse, DelegationConfig } from '@/lib/agents/delegation-handler';
+import { 
+  createAntiSycophancyMiddleware,
+  wrapStreamWithAntiSycophancy,
+  MetricsAggregator
+} from '@/lib/ai/middleware';
+import { ANTI_SYCOPHANCY_ENHANCEMENT } from '@/lib/ai/anti-sycophancy';
+import { getVersionHeaders } from '@/lib/version';
 
 // Explicitly set edge runtime for Vercel streaming
 export const runtime = 'edge';
@@ -13,8 +20,13 @@ export const config = {
   regions: ['iad1'], // US East by default, adjust as needed
 };
 
-// Enhanced system prompt that includes delegation awareness
+// Initialize metrics aggregator for monitoring
+const metricsAggregator = new MetricsAggregator();
+
+// Enhanced system prompt that includes delegation awareness and anti-sycophancy
 const ENHANCED_SYSTEM_PROMPT = `${DIOGENES_SYSTEM_PROMPT}
+
+${ANTI_SYCOPHANCY_ENHANCEMENT}
 
 CONTEXTUAL AWARENESS:
 When provided with web search context, integrate it seamlessly into your philosophical discourse. Use current information as a foundation for deeper inquiry, always maintaining your contrarian perspective and questioning the nature of "facts" themselves.
@@ -93,6 +105,25 @@ export async function POST(req: NextRequest) {
       verbose: delegationConfig.verboseLogging
     });
 
+    // Initialize anti-sycophancy middleware with configuration
+    // DISABLED: Anti-sycophancy middleware is causing messages to disappear
+    // The middleware corrupts the SSE stream format
+    const antiSycophancyEnabled = false; // CRITICAL: Set to false until SSE issue is fixed
+    
+    const antiSycophancyConfig = {
+      aggressiveness: parseInt(process.env.ANTI_SYCOPHANCY_LEVEL || '7', 10),
+      enableSocraticQuestions: true,
+      enableEvidenceDemands: true,
+      enablePerspectiveMultiplication: true,
+      injectSystemPrompt: false, // We inject it manually in ENHANCED_SYSTEM_PROMPT
+      logMetrics: process.env.NODE_ENV === 'development',
+      metricsCallback: (metrics: any) => {
+        metricsAggregator.addMetrics(metrics);
+      },
+    };
+    
+    const antiSycophancyMiddleware = createAntiSycophancyMiddleware(antiSycophancyConfig);
+
     // Filter out system messages from user input
     const userMessages = messages.filter((m: any) => m.role !== 'system');
     
@@ -134,29 +165,41 @@ export async function POST(req: NextRequest) {
       throw new Error('No response received from OpenRouter');
     }
 
-    // Add custom headers to indicate if search was performed
-    const headers = new Headers();
-    if (searchPerformed) {
-      headers.set('X-Search-Delegated', 'true');
-    }
-
     // Convert the response to a stream using Vercel AI SDK's OpenAIStream
     console.log('[Edge Runtime] OpenRouter response received, creating stream...');
     
     try {
-      // OpenAIStream expects an async iterable, which the OpenRouter response should be
-      const stream = OpenAIStream(response as any);
+      // CRITICAL FIX: Use custom streaming handler for AI SDK v5
+      // OpenAIStream is deprecated in v5, using our custom converter
+      const stream = openRouterToStream(response);
       
-      // Add proper headers for streaming
-      headers.set('Content-Type', 'text/event-stream');
-      headers.set('Cache-Control', 'no-cache, no-transform');
-      headers.set('Connection', 'keep-alive');
-      headers.set('X-Content-Type-Options', 'nosniff');
+      // Apply anti-sycophancy middleware only if enabled
+      let enhancedStream = stream;
+      if (antiSycophancyEnabled) {
+        console.log('[Edge Runtime] Applying anti-sycophancy middleware');
+        enhancedStream = wrapStreamWithAntiSycophancy(stream, antiSycophancyConfig);
+      } else {
+        console.log('[Edge Runtime] Anti-sycophancy disabled - using raw stream');
+      }
       
       console.log('[Edge Runtime] Returning streaming response');
       
-      // Return a StreamingTextResponse which handles the proper formatting
-      return new StreamingTextResponse(stream, { headers });
+      // Create headers for the response
+      const headers: HeadersInit = {};
+      
+      // Add custom headers to indicate if search was performed
+      if (searchPerformed) {
+        headers['X-Search-Delegated'] = 'true';
+      }
+      
+      // Add version headers
+      const versionHeaders = getVersionHeaders();
+      Object.entries(versionHeaders).forEach(([key, value]) => {
+        headers[key] = value;
+      });
+      
+      // Use the createStreamingResponse function which handles the type conversion properly
+      return createStreamingResponse(enhancedStream, headers);
     } catch (streamError) {
       console.error('[Edge Runtime] Stream creation failed:', streamError);
       throw new Error(`Failed to create stream: ${streamError}`);
