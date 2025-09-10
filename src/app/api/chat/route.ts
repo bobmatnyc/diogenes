@@ -11,6 +11,10 @@ import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
 import { getVersionHeaders } from '@/lib/version';
+import { validateEnvironment } from '@/lib/env-validator';
+
+// Validate environment on module load (ensures .env priority)
+validateEnvironment();
 
 // Explicitly set edge runtime for Vercel streaming
 export const runtime = 'edge';

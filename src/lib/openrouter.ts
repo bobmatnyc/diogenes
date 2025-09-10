@@ -1,12 +1,17 @@
 import OpenAI from 'openai';
+import { getEnvVar, requireEnvVar } from './env-config';
 
-// Create OpenRouter client dynamically to ensure fresh env vars
+// Create OpenRouter client dynamically with enforced .env priority
 export function getOpenRouterClient() {
+  // CRITICAL: Use requireEnvVar to ONLY get value from .env files
+  // This prevents shell environment from overriding .env.local
+  const apiKey = requireEnvVar('OPENROUTER_API_KEY');
+  
   return new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: process.env.OPENROUTER_API_KEY || '',
+    apiKey: apiKey,
     defaultHeaders: {
-      'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+      'HTTP-Referer': getEnvVar('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
       'X-Title': 'Diogenes - The Contrarian AI',
     },
   });
