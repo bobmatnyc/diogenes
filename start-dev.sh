@@ -1,17 +1,27 @@
 #!/bin/bash
 
-# Start development server with the correct API key from .env.local
-# This overrides any environment variable that might be set in your shell
+# Kill any existing Next.js dev servers
+echo "Stopping any existing dev servers..."
+pkill -f "next dev" || true
+pkill -f "pnpm run dev" || true
 
-# Load the API key from .env.local
-if [ -f .env.local ]; then
-    export $(grep OPENROUTER_API_KEY .env.local | xargs)
-    echo "✅ Loaded OPENROUTER_API_KEY from .env.local"
-else
-    echo "❌ Error: .env.local file not found"
-    exit 1
-fi
+# Wait for processes to terminate
+sleep 2
+
+# Clear Next.js cache
+echo "Clearing Next.js cache..."
+rm -rf .next
+
+# Unset any existing environment variables that might conflict
+unset OPENROUTER_API_KEY
+unset ENABLE_MOCK_SEARCH
+
+# Load environment from .env.local
+export $(grep -v '^#' .env.local | xargs)
+
+# Verify the correct key is loaded
+echo "Using OpenRouter API key: ${OPENROUTER_API_KEY:0:30}..."
 
 # Start the development server
-echo "🚀 Starting Diogenes dev server..."
-pnpm run dev
+echo "Starting development server..."
+exec pnpm run dev

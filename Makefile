@@ -19,7 +19,9 @@ help: ## Show this help message
 dev: ## Start development server (primary dev command)
 	@echo "$(YELLOW)Starting Diogenes development server...$(RESET)"
 	@echo "$(BLUE)Access: http://localhost:3000 (OAuth authentication)$(RESET)"
-	@if [ -f .env.local ]; then \
+	@if [ -f start-dev.sh ]; then \
+		./start-dev.sh; \
+	elif [ -f .env.local ]; then \
 		export $$(grep OPENROUTER_API_KEY .env.local | xargs) && pnpm run dev; \
 	else \
 		pnpm run dev; \
