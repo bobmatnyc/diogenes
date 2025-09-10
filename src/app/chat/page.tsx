@@ -1,12 +1,13 @@
 'use client';
 
 import AuthGate from '@/components/AuthGate';
-import ChatInterface from '@/components/ChatInterface';
+// Using working version with manual state management
+import ChatInterfaceWorking from '@/components/ChatInterfaceWorking';
 
 export default function ChatPage() {
   return (
     <AuthGate>
-      <ChatInterface />
+      <ChatInterfaceWorking />
     </AuthGate>
   );
 }

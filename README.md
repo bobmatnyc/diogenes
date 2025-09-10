@@ -10,20 +10,39 @@ A contrarian AI chatbot that challenges conventional thinking through Socratic d
 - Core Diogenean system prompt
 - Integration with OpenRouter API
 
+## Quick Start
+
+```bash
+# Single-command development
+make dev
+
+# Or traditional Node.js way
+npm run dev
+```
+
+**Password**: `diogenes2024`  
+**URL**: http://localhost:3000
+
+## Documentation
+
+- **[CLAUDE.md](./CLAUDE.md)** - Complete guide for Claude Code and AI agents  
+- **[STRUCTURE.md](./STRUCTURE.md)** - Detailed project structure and architecture
+- **[README.md](./README.md)** - This overview document
+
 ## Development
 
 ```bash
-# Install dependencies
-npm install
+# Recommended: Use Makefile commands
+make help          # Show all available commands
+make dev           # Start development server
+make build         # Build for production
+make quality       # Run all quality checks
 
-# Run development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
+# Traditional npm scripts still work
+npm install        # Install dependencies
+npm run dev        # Run development server
+npm run build      # Build for production
+npm start          # Start production server
 ```
 
 ## Environment Variables

@@ -1,0 +1,299 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import MessageBubble from './MessageBubble';
+import TokenMetrics from './TokenMetrics';
+import VersionBadge, { VersionFooter } from './VersionBadge';
+import { 
+  getSession, 
+  createNewSession, 
+  addMessageToSession,
+  clearSession
+} from '@/lib/session';
+import { getRandomStarter } from '@/lib/prompts/core-principles';
+import { isDevelopment } from '@/lib/env';
+import { estimateTokens, calculateCost, estimateMessagesTokens } from '@/lib/tokens';
+import { Message } from '@/types/chat';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export default function ChatInterfaceWorking() {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Initialize session
+  const session = getSession() || createNewSession();
+
+  // Add welcome message on first load
+  useEffect(() => {
+    const currentSession = getSession();
+    if (!currentSession || currentSession.messages.length === 0) {
+      const welcomeMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: getRandomStarter(),
+      };
+      
+      setMessages([welcomeMessage]);
+      
+      // Save welcome message to session
+      const newSession = createNewSession();
+      addMessageToSession(newSession, {
+        ...welcomeMessage,
+        timestamp: new Date(),
+      });
+    } else {
+      // Load messages from session
+      const sessionMessages: ChatMessage[] = currentSession.messages.map(msg => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+      setMessages(sessionMessages);
+    }
+  }, []);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleNewConversation = () => {
+    if (confirm('Start a new conversation? Current conversation will be cleared.')) {
+      clearSession();
+      window.location.reload();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    const trimmedInput = inputValue.trim();
+    if (!trimmedInput || isLoading) {
+      return;
+    }
+
+    // Add user message to UI
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: trimmedInput,
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+
+    // Save user message to session
+    const userTokens = estimateTokens(trimmedInput);
+    const sessionUserMessage: Message = {
+      id: userMessage.id,
+      role: 'user',
+      content: trimmedInput,
+      timestamp: new Date(),
+      tokenUsage: {
+        promptTokens: userTokens,
+        completionTokens: 0,
+        totalTokens: userTokens,
+        cost: calculateCost(userTokens, 0),
+      },
+    };
+    
+    const currentSession = getSession() || createNewSession();
+    addMessageToSession(currentSession, sessionUserMessage);
+
+    try {
+      // Send to API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(msg => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Read the streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      // Create assistant message
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: '',
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      let fullContent = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          break;
+        }
+        
+        const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
+        
+        // Update the assistant message with accumulated content
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === assistantMessage.id 
+              ? { ...msg, content: fullContent }
+              : msg
+          )
+        );
+      }
+
+      // Save assistant response to session
+      const completionTokens = estimateTokens(fullContent);
+      const promptTokens = estimateMessagesTokens([...messages, userMessage].map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })));
+      
+      const sessionAssistantMessage: Message = {
+        id: assistantMessage.id,
+        role: 'assistant',
+        content: fullContent,
+        timestamp: new Date(),
+        tokenUsage: {
+          promptTokens: promptTokens,
+          completionTokens: completionTokens,
+          totalTokens: promptTokens + completionTokens,
+          cost: calculateCost(promptTokens, completionTokens),
+        },
+      };
+      
+      addMessageToSession(currentSession, sessionAssistantMessage);
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      // Show error message
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.',
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Get current session for token metrics
+  const currentSession = getSession() || createNewSession();
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Development Mode Banner */}
+      {isDevelopment() && (
+        <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
+          Development Mode - Authentication Bypassed
+        </div>
+      )}
+      
+      {/* Header */}
+      <div className="bg-diogenes-primary text-white p-4 shadow-lg">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Diogenes</h1>
+              <p className="text-sm opacity-90">The Digital Cynic</p>
+            </div>
+            <VersionBadge variant="minimal" showEnvironment={false} className="text-white" />
+          </div>
+          <div className="flex items-center gap-4">
+            <TokenMetrics session={currentSession} />
+            <button
+              onClick={handleNewConversation}
+              className="px-4 py-2 bg-diogenes-secondary hover:bg-diogenes-accent rounded-lg transition-colors"
+            >
+              New Conversation
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="max-w-4xl mx-auto">
+          {messages.map((message) => (
+            <MessageBubble
+              key={message.id}
+              message={{
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                timestamp: new Date(),
+              }}
+            />
+          ))}
+          {isLoading && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-gray-200 dark:bg-gray-700 px-4 py-3 rounded-lg">
+                <div className="flex space-x-2">
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce delay-100" />
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce delay-200" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input Form */}
+      <div className="max-w-4xl mx-auto w-full">
+        <form onSubmit={handleSubmit} className="flex gap-2 p-4 border-t">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            placeholder="Challenge Diogenes with your question..."
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-diogenes-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !inputValue.trim()}
+            className="px-6 py-2 bg-diogenes-primary text-white rounded-lg hover:bg-diogenes-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
+        </form>
+      </div>
+      
+      {/* Version Footer */}
+      <VersionFooter className="border-t" />
+    </div>
+  );
+}

@@ -5,7 +5,7 @@
  */
 
 // Static version from package.json (will be updated at build time)
-const PACKAGE_VERSION = '0.2.0';
+const PACKAGE_VERSION = '0.2.3';
 
 /**
  * Parse semantic version into components

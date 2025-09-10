@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stream Test</title>
+</head>
+<body>
+    <h1>Testing Streaming Response</h1>
+    <div id="messages"></div>
+    <input type="text" id="input" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+    <div id="response"></div>
+    
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('input').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: input }
+                        ]
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    console.log('Received chunk:', chunk);
+                    fullText += chunk;
+                    responseDiv.textContent = fullText;
+                }
+                
+                console.log('Full response:', fullText);
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

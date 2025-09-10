@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Browser Streaming Test</title>
+</head>
+<body>
+    <h1>Browser Streaming Test</h1>
+    <button onclick="testStreaming()">Test Streaming</button>
+    <pre id="output"></pre>
+    
+    <script>
+        async function testStreaming() {
+            const output = document.getElementById('output');
+            output.textContent = 'Starting test...\n\n';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: 'Hello' }
+                        ]
+                    })
+                });
+                
+                output.textContent += `Response status: ${response.status}\n`;
+                output.textContent += `Content-Type: ${response.headers.get('Content-Type')}\n\n`;
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullText += chunk;
+                    output.textContent += `Chunk: ${JSON.stringify(chunk)}\n`;
+                }
+                
+                output.textContent += '\n\nFull response:\n' + fullText;
+                
+            } catch (error) {
+                output.textContent += `Error: ${error.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>
