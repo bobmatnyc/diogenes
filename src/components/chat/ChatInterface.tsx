@@ -27,6 +27,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 import ErrorMessage from './ErrorMessage';
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { cn } from '@/lib/utils';
 
 interface ChatMessage {
@@ -47,6 +48,7 @@ export default function ChatInterface() {
   const [selectedPersonality, setSelectedPersonality] = useState<PersonalityType>('diogenes');
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [lastError, setLastError] = useState<any>(null);
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
   const { user } = useUser();
 
   // Initialize session
@@ -111,10 +113,12 @@ export default function ChatInterface() {
   }, [messages, streamingContent]);
 
   const handleNewConversation = useCallback(() => {
-    if (confirm('Start a new conversation? Current conversation will be cleared.')) {
-      clearSession();
-      window.location.reload();
-    }
+    setShowNewChatDialog(true);
+  }, []);
+
+  const handleConfirmNewChat = useCallback(() => {
+    clearSession();
+    window.location.reload();
   }, []);
 
   const handleDownloadTranscript = useCallback(() => {
@@ -402,6 +406,18 @@ export default function ChatInterface() {
           />
         </div>
       </div>
+
+      {/* Confirmation Dialog for New Chat */}
+      <ConfirmationDialog
+        open={showNewChatDialog}
+        onOpenChange={setShowNewChatDialog}
+        title="Start New Conversation"
+        description="Are you sure you want to start a new conversation? Your current conversation will be cleared."
+        confirmText="Start New"
+        cancelText="Cancel"
+        onConfirm={handleConfirmNewChat}
+        variant="destructive"
+      />
     </div>
   );
 }

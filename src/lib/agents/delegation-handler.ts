@@ -62,11 +62,22 @@ export async function analyzeForDelegation(
 Analyze this user message and determine if it needs web search for accurate response:
 "${userMessage}"
 
+IMPORTANT: Be LIBERAL in deciding to search. When in doubt, search. Users expect current information.
+
 Consider:
-1. Does it ask about current events, recent developments, or time-sensitive information?
-2. Does it reference specific dates, prices, or data that changes frequently?
-3. Does it ask about people, companies, or topics that may have recent updates?
-4. Is it purely philosophical or conceptual where current data isn't needed?
+1. Does it ask about ANY current events, recent developments, or time-sensitive information?
+2. Does it reference specific dates, prices, statistics, or data that changes?
+3. Does it ask about people, companies, products, or topics that may have updates?
+4. Does it mention "today", "current", "latest", "recent", "now", or any year from 2020 onwards?
+5. Does it ask "what's happening", "what happened", or about any specific events?
+6. Does it ask about weather, sports, politics, technology news, or market data?
+7. Is it asking about AI developments, new models, or tech updates?
+
+Only return needsWebSearch: false if the question is:
+- Purely philosophical with no time element
+- Abstract mathematical or logical problems
+- Personal advice with no current context needed
+- Historical events before 2020
 
 Respond in JSON format:
 {
@@ -285,33 +296,84 @@ function checkForSearchTriggers(message: string): boolean {
     'this week',
     'this month',
     'this year',
+    'right now',
+    'as of',
+    'up to date',
+    'nowadays',
+    'presently',
     // Specific years that indicate current info
+    '2020',
+    '2021',
+    '2022',
+    '2023',
     '2024',
     '2025',
+    // AI and tech specific
+    'ai',
+    'claude',
+    'gpt',
+    'openai',
+    'anthropic',
+    'llm',
+    'chatbot',
+    'artificial intelligence',
+    'machine learning',
+    'deep learning',
+    'neural network',
     // News and events
     'news',
     'update',
     'announcement',
     'breaking',
+    'headline',
+    'report',
+    // Questions needing current info
+    "what's",
+    "what is",
+    "who is",
+    "where is",
+    "when is",
+    "when did",
+    "how is",
     // Market and finance
     'price of',
     'stock',
     'bitcoin',
     'crypto',
     'market',
+    'economy',
+    'inflation',
+    'interest rate',
     // Events and competitions
     'who won',
     'election',
     'results',
     'score',
+    'game',
+    'match',
+    'tournament',
     // Weather and location
     'weather',
     'temperature',
     'forecast',
+    'climate',
     // Specific queries
     'what happened',
     'status of',
     'how much',
+    'how many',
+    'statistics',
+    'data on',
+    'information about',
+    // Tech and products
+    'release',
+    'launch',
+    'version',
+    'feature',
+    'product',
+    'service',
+    'company',
+    'startup',
   ];
 
   const lowerMessage = message.toLowerCase();
@@ -391,7 +453,8 @@ export async function orchestrateHybridResponse(
     console.log('Delegation decision:', analysis);
   }
 
-  if (!analysis.needsWebSearch || analysis.confidence < 0.4) {
+  // Lower threshold to be more aggressive about searching
+  if (!analysis.needsWebSearch || analysis.confidence < 0.3) {
     return {
       enhancedMessages: messages,
       searchPerformed: false,
