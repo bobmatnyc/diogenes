@@ -12,7 +12,7 @@ import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
 import { getVersionHeaders } from '@/lib/version';
 import { validateEnvironmentEdge } from '@/lib/env-edge';
-import { estimateMessagesTokens } from '@/lib/tokens';
+import { estimateMessagesTokens } from '@/lib/tokens-edge';
 
 // Validate environment on module load (Edge-compatible version)
 validateEnvironmentEdge();
