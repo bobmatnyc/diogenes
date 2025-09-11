@@ -147,3 +147,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide Clerk branding elements */
+.cl-internal-b3fm6y, /* Secured by Clerk text */
+.cl-footerAction,
+.cl-footerActionLink,
+.cl-footer,
+[data-localization-key="signIn.footer.links"],
+[data-localization-key="footerPageLink__help"],
+[data-localization-key="footerPageLink__privacy"],
+[data-localization-key="footerPageLink__terms"] {
+  display: none !important;
+}
+
+/* Hide the "Secured by Clerk" badge */
+.cl-internal-1krlpxl,
+.cl-internal-1dauvpw /* Alternative class for badge */ {
+  display: none !important;
+}
+
+/* Hide any Clerk logo or branding images */
+.cl-logoBox,
+.cl-logoImage {
+  display: none !important;
+}
+
+/* Custom styling for cleaner Diogenes theme */
+.cl-card {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.cl-headerTitle,
+.cl-headerSubtitle {
+  display: none !important;
+}

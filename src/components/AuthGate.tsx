@@ -68,6 +68,8 @@ export default function AuthGate({ children, requireAuth = false }: AuthGateProp
                   card: 'shadow-none bg-transparent',
                   headerTitle: 'hidden',
                   headerSubtitle: 'hidden',
+                  footer: 'hidden', // Hide the footer with Clerk branding
+                  footerAction: 'hidden', // Hide footer actions
                   socialButtonsBlockButton:
                     'w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200',
                   formButtonPrimary:
