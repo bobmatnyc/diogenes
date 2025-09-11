@@ -1,15 +1,19 @@
 import type { NextRequest } from 'next/server';
-import { type DelegationConfig, orchestrateHybridResponse } from '@/lib/agents/delegation-handler';
-import { ANTI_SYCOPHANCY_ENHANCEMENT } from '@/lib/ai/anti-sycophancy';
-import {
-  createAntiSycophancyMiddleware,
-  MetricsAggregator,
-  wrapStreamWithAntiSycophancy,
-} from '@/lib/ai/middleware';
+import { type DelegationConfig, orchestrateHybridResponse } from '@/lib/agents/delegation-handler-edge';
+// Anti-sycophancy temporarily removed for Edge Function size optimization
+// import { ANTI_SYCOPHANCY_ENHANCEMENT } from '@/lib/ai/anti-sycophancy';
+// import {
+//   createAntiSycophancyMiddleware,
+//   MetricsAggregator,
+//   wrapStreamWithAntiSycophancy,
+// } from '@/lib/ai/middleware';
 import { createStreamingResponse, openRouterToStream } from '@/lib/ai/streaming-fix';
 import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
-import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
-import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
+// Using minimal prompts for Edge Function size optimization
+import { DIOGENES_MINIMAL, BOB_MINIMAL } from '@/lib/prompts/minimal-prompts';
+// Full prompts available but commented for size:
+// import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
+// import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
 import { getVersionHeaders } from '@/lib/version';
 import { validateEnvironmentEdge } from '@/lib/env-edge';
 import { estimateMessagesTokens } from '@/lib/tokens-edge';
@@ -26,44 +30,13 @@ export const config = {
   regions: ['iad1'], // US East by default, adjust as needed
 };
 
-// Initialize metrics aggregator for monitoring
-const metricsAggregator = new MetricsAggregator();
+// Metrics aggregator removed for Edge Function size optimization
+// const metricsAggregator = new MetricsAggregator();
 
-// Function to create personalized system prompt
+// Lightweight personalized system prompt
 function createPersonalizedPrompt(firstName: string, personality: 'diogenes' | 'bob' = 'diogenes'): string {
-  if (personality === 'bob') {
-    return `${BOB_MATSUOKA_SYSTEM_PROMPT}
-
-${ANTI_SYCOPHANCY_ENHANCEMENT}
-
-CONTEXTUAL AWARENESS:
-When provided with web search context, integrate it naturally into your technical and strategic analysis. Use current information to provide pragmatic insights, always maintaining your thoughtful, research-driven perspective.
-
-PERSONAL ADDRESS:
-You are speaking with ${firstName}. Address them professionally and warmly, as you would a colleague or mentee. Use their name occasionally when making important points or sharing personal anecdotes.
-
-Remember:
-- Balance technical depth with business pragmatism
-- Share relevant experiences from your 50-year journey
-- Connect current challenges to historical patterns
-- Emphasize sustainable, well-architected solutions`;
-  }
-  
-  return `${DIOGENES_SYSTEM_PROMPT}
-
-${ANTI_SYCOPHANCY_ENHANCEMENT}
-
-CONTEXTUAL AWARENESS:
-When provided with web search context, integrate it seamlessly into your philosophical discourse. Use current information as a foundation for deeper inquiry, always maintaining your contrarian perspective and questioning the nature of "facts" themselves.
-
-PERSONAL ADDRESS:
-You are speaking with ${firstName}. Address them naturally in conversation when philosophically appropriate - not forced or frequent, but as you would address any thinking being worthy of challenging discourse. Sometimes use their name when making particularly pointed observations or when the philosophical moment calls for direct address.
-
-Remember:
-- Facts are starting points for philosophical exploration, not endpoints
-- Question the sources, their motivations, and the nature of "truth" in information
-- Current events are merely the latest iteration of eternal human patterns
-- Use specific data to illustrate timeless philosophical principles`;
+  const basePrompt = personality === 'bob' ? BOB_MINIMAL : DIOGENES_MINIMAL;
+  return `${basePrompt}\n\nYou are speaking with ${firstName}.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -140,24 +113,8 @@ export async function POST(req: NextRequest) {
       verbose: delegationConfig.verboseLogging,
     });
 
-    // Initialize anti-sycophancy middleware with configuration
-    // DISABLED: Anti-sycophancy middleware is causing messages to disappear
-    // The middleware corrupts the SSE stream format
-    const antiSycophancyEnabled = false; // CRITICAL: Set to false until SSE issue is fixed
-
-    const antiSycophancyConfig = {
-      aggressiveness: Number.parseInt(process.env.ANTI_SYCOPHANCY_LEVEL || '7', 10),
-      enableSocraticQuestions: true,
-      enableEvidenceDemands: true,
-      enablePerspectiveMultiplication: true,
-      injectSystemPrompt: false, // We inject it manually in ENHANCED_SYSTEM_PROMPT
-      logMetrics: process.env.NODE_ENV === 'development',
-      metricsCallback: (metrics: any) => {
-        metricsAggregator.addMetrics(metrics);
-      },
-    };
-
-    const antiSycophancyMiddleware = createAntiSycophancyMiddleware(antiSycophancyConfig);
+    // Anti-sycophancy middleware removed for Edge Function size optimization
+    const antiSycophancyEnabled = false;
 
     // Filter out system messages from user input
     const userMessages = messages.filter((m: any) => m.role !== 'system');
@@ -300,14 +257,9 @@ export async function POST(req: NextRequest) {
       // OpenAIStream is deprecated in v5, using our custom converter
       const stream = openRouterToStream(response);
 
-      // Apply anti-sycophancy middleware only if enabled
-      let enhancedStream = stream;
-      if (antiSycophancyEnabled) {
-        console.log('[Edge Runtime] Applying anti-sycophancy middleware');
-        enhancedStream = wrapStreamWithAntiSycophancy(stream, antiSycophancyConfig);
-      } else {
-        console.log('[Edge Runtime] Anti-sycophancy disabled - using raw stream');
-      }
+      // Use raw stream directly (anti-sycophancy removed for size optimization)
+      const enhancedStream = stream;
+      console.log('[Edge Runtime] Using optimized streaming');
 
       console.log('[Edge Runtime] Returning streaming response');
 
