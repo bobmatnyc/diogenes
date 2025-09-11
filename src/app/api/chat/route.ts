@@ -1,12 +1,10 @@
 import type { NextRequest } from 'next/server';
 import { type DelegationConfig, orchestrateHybridResponse } from '@/lib/agents/delegation-handler-edge';
-// Anti-sycophancy temporarily removed for Edge Function size optimization
-// import { ANTI_SYCOPHANCY_ENHANCEMENT } from '@/lib/ai/anti-sycophancy';
-// import {
-//   createAntiSycophancyMiddleware,
-//   MetricsAggregator,
-//   wrapStreamWithAntiSycophancy,
-// } from '@/lib/ai/middleware';
+// Using lightweight Edge-optimized anti-sycophancy
+import { 
+  createAntiSycophancyTransform, 
+  ANTI_SYCOPHANCY_PROMPT 
+} from '@/lib/ai/anti-sycophancy-edge';
 import { createStreamingResponse, openRouterToStream } from '@/lib/ai/streaming-fix';
 import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
 // Using minimal prompts for Edge Function size optimization
@@ -33,10 +31,10 @@ export const config = {
 // Metrics aggregator removed for Edge Function size optimization
 // const metricsAggregator = new MetricsAggregator();
 
-// Lightweight personalized system prompt
+// Lightweight personalized system prompt with anti-sycophancy
 function createPersonalizedPrompt(firstName: string, personality: 'diogenes' | 'bob' = 'diogenes'): string {
   const basePrompt = personality === 'bob' ? BOB_MINIMAL : DIOGENES_MINIMAL;
-  return `${basePrompt}\n\nYou are speaking with ${firstName}.`;
+  return `${basePrompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nYou are speaking with ${firstName}.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -257,9 +255,16 @@ export async function POST(req: NextRequest) {
       // OpenAIStream is deprecated in v5, using our custom converter
       const stream = openRouterToStream(response);
 
-      // Use raw stream directly (anti-sycophancy removed for size optimization)
-      const enhancedStream = stream;
-      console.log('[Edge Runtime] Using optimized streaming');
+      // Apply lightweight anti-sycophancy transform that preserves SSE format
+      // Only enable for Diogenes personality (Bob can be agreeable)
+      const antiSycophancyEnabled = selectedPersonality === 'diogenes';
+      const aggressiveness = 8; // High for Diogenes
+      
+      const enhancedStream = antiSycophancyEnabled 
+        ? stream.pipeThrough(createAntiSycophancyTransform(aggressiveness))
+        : stream;
+      
+      console.log(`[Edge Runtime] Streaming with anti-sycophancy: ${antiSycophancyEnabled}`);
 
       console.log('[Edge Runtime] Returning streaming response');
 
