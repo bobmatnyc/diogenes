@@ -11,10 +11,11 @@ import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
 import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
 import { getVersionHeaders } from '@/lib/version';
-import { validateEnvironment } from '@/lib/env-validator';
+import { validateEnvironmentEdge } from '@/lib/env-edge';
+import { estimateMessagesTokens } from '@/lib/tokens';
 
-// Validate environment on module load (ensures .env priority)
-validateEnvironment();
+// Validate environment on module load (Edge-compatible version)
+validateEnvironmentEdge();
 
 // Explicitly set edge runtime for Vercel streaming
 export const runtime = 'edge';
@@ -316,6 +317,21 @@ export async function POST(req: NextRequest) {
       // Add custom headers to indicate if search was performed
       if (searchPerformed) {
         headers['X-Search-Delegated'] = 'true';
+      }
+
+      // Add context space tracking headers
+      const contextTokens = estimateMessagesTokens(messages);
+      const maxContextTokens = 128000; // Claude's context window
+      const contextUsagePercent = Math.round((contextTokens / maxContextTokens) * 100);
+      
+      headers['X-Context-Tokens'] = contextTokens.toString();
+      headers['X-Context-Max-Tokens'] = maxContextTokens.toString();
+      headers['X-Context-Usage-Percent'] = contextUsagePercent.toString();
+      
+      // Add search context size if search was performed
+      if (searchContext) {
+        const searchContextTokens = estimateMessagesTokens([{ role: 'system', content: searchContext }]);
+        headers['X-Search-Context-Tokens'] = searchContextTokens.toString();
       }
 
       // Add version headers

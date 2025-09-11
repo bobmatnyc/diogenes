@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { isDevelopment } from '@/lib/env';
 import { getRandomStarter } from '@/lib/prompts/core-principles';
 import { BOB_CONVERSATION_STARTERS } from '@/lib/prompts/bob-matsuoka';
@@ -27,6 +27,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 import ErrorMessage from './ErrorMessage';
+import LoadingIndicator from './LoadingIndicator';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { cn } from '@/lib/utils';
 
@@ -48,7 +49,13 @@ export default function ChatInterface() {
   const [selectedPersonality, setSelectedPersonality] = useState<PersonalityType>('diogenes');
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [lastError, setLastError] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+  const [contextUsage, setContextUsage] = useState<{
+    tokens: number;
+    maxTokens: number;
+    percent: number;
+  }>({ tokens: 0, maxTokens: 128000, percent: 0 });
   const { user } = useUser();
 
   // Initialize session
@@ -222,6 +229,23 @@ export default function ChatInterface() {
         throw error;
       }
 
+      // Check if search was delegated
+      const searchDelegated = response.headers.get('X-Search-Delegated') === 'true';
+      setIsSearching(searchDelegated);
+      
+      // Update context usage from headers
+      const contextTokensHeader = response.headers.get('X-Context-Tokens');
+      const maxContextTokensHeader = response.headers.get('X-Context-Max-Tokens');
+      const contextPercentHeader = response.headers.get('X-Context-Usage-Percent');
+      
+      if (contextTokensHeader && maxContextTokensHeader && contextPercentHeader) {
+        setContextUsage({
+          tokens: parseInt(contextTokensHeader, 10),
+          maxTokens: parseInt(maxContextTokensHeader, 10),
+          percent: parseInt(contextPercentHeader, 10)
+        });
+      }
+
       // Read the streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -312,6 +336,7 @@ export default function ChatInterface() {
     } finally {
       setIsLoading(false);
       setStreamingContent('');
+      setIsSearching(false);
     }
   }, [messages, isLoading, firstName, selectedModel]);
 
@@ -338,6 +363,46 @@ export default function ChatInterface() {
         userName={firstName}
         messagesCount={messages.length}
       />
+
+      {/* Context Usage Bar */}
+      {contextUsage.tokens > 0 && (
+        <div className="px-4 py-2 border-b bg-muted/30">
+          <div className="max-w-4xl mx-auto flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="font-mono text-muted-foreground">
+                  Context: {contextUsage.tokens.toLocaleString()} / {contextUsage.maxTokens.toLocaleString()} tokens
+                </span>
+                <span className={cn(
+                  "font-mono font-medium",
+                  contextUsage.percent > 80 ? "text-red-600" : 
+                  contextUsage.percent > 60 ? "text-yellow-600" : 
+                  "text-green-600"
+                )}>
+                  {contextUsage.percent}%
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className={cn(
+                    "h-full transition-all duration-500",
+                    contextUsage.percent > 80 ? "bg-red-500" : 
+                    contextUsage.percent > 60 ? "bg-yellow-500" : 
+                    "bg-green-500"
+                  )}
+                  style={{ width: `${Math.min(contextUsage.percent, 100)}%` }}
+                />
+              </div>
+            </div>
+            {isSearching && (
+              <Badge variant="secondary" className="text-xs">
+                <Search className="h-3 w-3 mr-1" />
+                Search Active
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <ScrollArea 
@@ -379,17 +444,11 @@ export default function ChatInterface() {
           ))}
 
           {isLoading && streamingContent === '' && (
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center">
-                <Loader2 className="h-4 w-4 text-white animate-spin" />
-              </div>
-              <div className="flex gap-1">
-                <span className="animate-pulse">Contemplating</span>
-                <span className="animate-pulse animation-delay-100">.</span>
-                <span className="animate-pulse animation-delay-200">.</span>
-                <span className="animate-pulse animation-delay-300">.</span>
-              </div>
-            </div>
+            <LoadingIndicator 
+              searchDelegated={isSearching}
+              contextTokens={estimateMessagesTokens(messages.map(m => ({ role: m.role, content: m.content })))}
+              maxContextTokens={128000}
+            />
           )}
 
           <div ref={messagesEndRef} />

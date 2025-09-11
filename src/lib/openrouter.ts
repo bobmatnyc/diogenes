@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { getEnvVar, requireEnvVar } from './env-config';
+import { getEnvVar, requireEnvVar } from './env-edge';
 
 // Create OpenRouter client dynamically with enforced .env priority
 export function getOpenRouterClient() {

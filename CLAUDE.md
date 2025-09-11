@@ -1,6 +1,6 @@
 # CLAUDE.md - Diogenes Project Guide
 
-**Quick Start**: `make dev` → http://localhost:3000 (OAuth authentication via Clerk)
+**Quick Start**: Development server auto-starts with claude-mpm → http://localhost:3000 (OAuth authentication via Clerk)
 
 **Version**: 0.4.0 - Modern tooling with pnpm, Biome, Vitest, and Vercel Analytics
 
@@ -12,6 +12,152 @@
 - **Philosophy**: Challenges conventional thinking through Socratic dialogue
 - **Architecture**: Next.js + TypeScript + OpenRouter + Vercel AI SDK
 - **Tooling**: pnpm (package manager) + Biome (linting/formatting) + Vitest (testing)
+
+## 🔴 CRITICAL: Auto-Start Development Server
+
+The development server **MUST** be running for claude-mpm to function effectively. This section ensures immediate productivity and continuous availability during development sessions.
+
+### Initialization Process
+When claude-mpm starts up, automatically execute:
+```bash
+# Start development server in background
+make dev &
+
+# Or directly with pnpm (alternative)
+pnpm run dev &
+
+# Wait for server startup
+sleep 3
+
+# Verify server is running
+curl -f http://localhost:3000/api/health 2>/dev/null || echo "Server starting..."
+```
+
+**Expected Output**:
+```
+▲ Next.js 15.5.2
+- Local:        http://localhost:3000
+- ready in 2.1s
+```
+
+### Background Process Management
+
+**Check if Dev Server is Running**:
+```bash
+# Check for Next.js dev server process
+ps aux | grep "next.*dev" | grep -v grep
+
+# Check port availability
+lsof -ti:3000 | head -1
+
+# Quick health check
+curl -s http://localhost:3000 >/dev/null && echo "✅ Server running" || echo "❌ Server down"
+```
+
+**View Development Server Logs**:
+```bash
+# Real-time logs (if running in background)
+tail -f .next/trace 2>/dev/null || echo "No trace file available"
+
+# Check for errors in terminal output
+# (Logs appear in terminal where `make dev` was started)
+
+# Alternative: Check via make command
+make logs-dev                      # Show recent development logs
+```
+
+**Restart Development Server**:
+```bash
+# Kill existing server
+pkill -f "next.*dev" || echo "No server running"
+
+# Wait for cleanup
+sleep 2
+
+# Start fresh server
+make dev &
+
+# Verify restart
+sleep 3 && curl -s http://localhost:3000 >/dev/null && echo "✅ Restart successful"
+```
+
+**Monitor Server Health**:
+```bash
+# Continuous monitoring (run in separate terminal)
+while true; do
+  if curl -s http://localhost:3000 >/dev/null; then
+    echo "$(date): ✅ Server healthy"
+  else
+    echo "$(date): ❌ Server down - restarting..."
+    make dev &
+  fi
+  sleep 30
+done
+```
+
+### Auto-Recovery Commands
+
+**Server Health Check Script**:
+```bash
+#!/bin/bash
+# Add to ~/.claude_mpm_startup or similar
+check_dev_server() {
+  if ! curl -s http://localhost:3000 >/dev/null; then
+    echo "🔄 Starting development server..."
+    cd /Users/masa/Projects/managed/diogenes
+    make dev &
+    sleep 5
+    echo "✅ Development server started: http://localhost:3000"
+  else
+    echo "✅ Development server already running: http://localhost:3000"
+  fi
+}
+
+# Run check
+check_dev_server
+```
+
+**Critical Recovery Commands**:
+```bash
+# If server is completely stuck
+pkill -9 -f "next.*dev"           # Force kill
+rm -rf .next                      # Clear build cache
+make clean                        # Clean all artifacts
+make dev                          # Fresh start
+
+# If port is occupied by another process
+lsof -ti:3000 | xargs kill        # Kill process using port 3000
+make dev                          # Restart server
+```
+
+### Integration with claude-mpm Startup
+
+**Recommended Startup Sequence**:
+1. **Environment Check**: Verify `.env.local` exists with required keys
+2. **Dependency Check**: Ensure `node_modules` is installed
+3. **Background Server Start**: Launch `make dev` in background
+4. **Health Verification**: Wait for server to be responsive
+5. **Ready Signal**: Confirm http://localhost:3000 is accessible
+
+**Status Indicators**:
+- 🟢 **Ready**: Server responsive at http://localhost:3000
+- 🟡 **Starting**: Server initializing (wait 3-5 seconds)
+- 🔴 **Failed**: Server not accessible (check logs and restart)
+
+### Development URL Access
+
+**Primary Development URL**: http://localhost:3000
+- **Authentication**: OAuth via Clerk (Google/Email login required)
+- **Chat Interface**: Available immediately after login
+- **API Endpoint**: http://localhost:3000/api/chat (streaming endpoint)
+- **Health Check**: http://localhost:3000/api/health (if available)
+
+**Verification Steps**:
+1. Navigate to http://localhost:3000
+2. Complete OAuth authentication
+3. Verify chat interface loads
+4. Send test message to confirm streaming works
+5. Check token counter updates in real-time
 
 ## 🔴 CRITICAL Components
 
@@ -56,6 +202,14 @@ Location: `/src/lib/prompts/core-principles.ts`
 - **Real-time**: tiktoken-based counting
 - **Components**: TokenMetrics, MessageTokenBadge
 - **Persistence**: localStorage session management
+
+### Enhanced Loading Indicators
+- **Contextual Messages**: Dynamic loading states based on operation type
+- **Search Awareness**: Different messages when web search is performed
+- **Personality-Specific**: Tailored messages for Diogenes vs Bob Matsuoka
+- **Visual Feedback**: Animated icons and phase transitions
+- **Implementation**: `LoadingIndicator` component with phase cycling
+- **Headers**: `X-Search-Delegated` header indicates search operations
 
 ## 🟢 STANDARD Architecture
 
@@ -336,11 +490,17 @@ This script will:
 make quick-start                    # Sets up environment and dependencies
 make setup-env                     # Creates .env.local from example
 
-# Daily development
-make dev                           # Start development server
-make status                        # Check project health
+# Daily development (auto-started with claude-mpm)
+# Development server runs automatically in background
+make status                        # Check project health and server status
+curl -s http://localhost:3000 >/dev/null && echo "✅ Server ready" || make dev
+
+# Manual server management (if needed)
+make dev                           # Start development server manually
+pkill -f "next.*dev"               # Stop development server
 
 # View at: http://localhost:3000 (sign in with OAuth)
+# Server auto-starts when claude-mpm initializes - no manual intervention needed
 ```
 
 ### Quality & Testing
@@ -658,10 +818,10 @@ pnpm run dev
 | Action | Command | Notes |
 |--------|---------|-------|
 | **New Developer** | `make quick-start` | One-time setup |
-| **Daily Development** | `make dev` | Primary workflow |
+| **Daily Development** | *Auto-started* | Server runs with claude-mpm |
+| **Check Server Status** | `make status` | Server health + project overview |
 | **Check Quality** | `make quality` | All linting + typecheck |
 | **Deploy** | `make deploy` | Auto-deploy to production |
-| **Check Status** | `make status` | Project health overview |
 
 ### Key Files & Architecture
 | Component | File Path | Purpose |
@@ -674,6 +834,7 @@ pnpm run dev
 | **Session Management** | `/src/lib/session.ts` | localStorage persistence |
 
 ### Critical Information
+- **Auto-Start**: Development server launches automatically with claude-mpm
 - **Authentication**: OAuth via Clerk (Google/Email)
 - **Local URL**: http://localhost:3000  
 - **Philosophy**: Challenge everything, especially the obvious
