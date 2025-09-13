@@ -78,8 +78,7 @@ export default function AuthGate({ children, requireAuth = false }: AuthGateProp
                 userButtonPopoverFooter: 'hidden',
               },
             }}
-            userProfileMode="navigation"
-            showName={true}
+            showName={false}
           />
         </div>
       )}
