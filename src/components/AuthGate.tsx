@@ -62,20 +62,24 @@ export default function AuthGate({ children, requireAuth = false }: AuthGateProp
   }
 
   // User is authenticated or auth is not required
-  // If authenticated, show user button in top right
+  // If authenticated, show user button in top right (adjusted position to not conflict with header)
   return (
     <>
       {isSignedIn && (
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-[100]">
           <UserButton
             afterSignOutUrl="/"
             appearance={{
               elements: {
-                avatarBox: 'h-10 w-10',
-                userButtonPopoverCard: 'shadow-lg',
+                avatarBox: 'h-10 w-10 ring-2 ring-border shadow-md',
+                userButtonPopoverCard: 'shadow-xl border border-border',
                 userButtonPopoverActionButton: 'hover:bg-gray-100 dark:hover:bg-gray-800',
+                userButtonPopoverActionButtonText: 'text-sm',
+                userButtonPopoverFooter: 'hidden',
               },
             }}
+            userProfileMode="navigation"
+            showName={true}
           />
         </div>
       )}

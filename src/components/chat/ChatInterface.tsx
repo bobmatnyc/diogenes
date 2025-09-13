@@ -338,7 +338,7 @@ export default function ChatInterface() {
       setStreamingContent('');
       setIsSearching(false);
     }
-  }, [messages, isLoading, firstName, selectedModel]);
+  }, [messages, isLoading, firstName, selectedModel, selectedPersonality]);
 
   // Get current session for token metrics
   const currentSession = getSession() || createNewSession();
@@ -357,6 +357,18 @@ export default function ChatInterface() {
         onPersonalityChange={(personality) => {
           setSelectedPersonality(personality);
           localStorage.setItem('preferredPersonality', personality);
+          // If it's the first message (welcome message), update it to match the new personality
+          if (messages.length === 1 && messages[0].role === 'assistant') {
+            const welcomeContent = personality === 'bob' 
+              ? BOB_CONVERSATION_STARTERS[Math.floor(Math.random() * BOB_CONVERSATION_STARTERS.length)]
+              : getRandomStarter();
+            
+            setMessages([{
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: welcomeContent,
+            }]);
+          }
         }}
         onNewConversation={handleNewConversation}
         onDownloadTranscript={handleDownloadTranscript}
