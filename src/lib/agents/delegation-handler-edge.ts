@@ -23,7 +23,10 @@ interface Message {
 function shouldSearch(prompt: string): boolean {
   const searchKeywords = [
     'current', 'today', 'latest', 'recent', 'news',
-    'happening', '2024', '2025', 'update', 'now'
+    'happening', '2024', '2025', 'update', 'now',
+    'what is', 'what are', "what's", 'trend',
+    'breaking', 'yesterday', 'this week', 'this month',
+    'this year', 'real-time', 'live', 'ongoing'
   ];
   
   const lowerPrompt = prompt.toLowerCase();
@@ -35,14 +38,15 @@ function shouldSearch(prompt: string): boolean {
  */
 async function performSearch(query: string): Promise<string | null> {
   try {
+    console.log('[Edge Search] Performing search for:', query.substring(0, 100));
     const openrouter = getOpenRouterClient();
     
     const searchResponse = await openrouter.chat.completions.create({
-      model: 'perplexity/llama-3.1-sonar-large-128k-online',
+      model: 'perplexity/sonar-pro',
       messages: [
         {
           role: 'system',
-          content: 'You are a search assistant. Provide concise, factual information with sources when available.'
+          content: 'You are a search assistant. Provide concise, factual information about current events and recent developments with sources when available. Focus on real, verifiable information.'
         },
         {
           role: 'user',
@@ -50,13 +54,23 @@ async function performSearch(query: string): Promise<string | null> {
         }
       ],
       temperature: 0.3,
-      max_tokens: 500,
+      max_tokens: 800,
       stream: false
     });
 
-    return searchResponse.choices[0]?.message?.content || null;
-  } catch (error) {
-    console.error('[Edge Search] Error:', error);
+    const content = searchResponse.choices[0]?.message?.content;
+    if (content) {
+      console.log('[Edge Search] Search successful, response length:', content.length);
+    } else {
+      console.log('[Edge Search] Search returned empty response');
+    }
+    return content || null;
+  } catch (error: any) {
+    console.error('[Edge Search] Error performing search:', {
+      message: error?.message,
+      status: error?.status,
+      type: error?.constructor?.name
+    });
     return null;
   }
 }
@@ -87,6 +101,7 @@ export async function orchestrateHybridResponse(
 
   // Check if search is needed
   const needsSearch = shouldSearch(lastUserMessage.content);
+  console.log('[Edge Orchestration] Search needed:', needsSearch, 'Mock mode:', config.enableMockMode);
 
   if (!needsSearch || config.enableMockMode) {
     return {
@@ -97,9 +112,11 @@ export async function orchestrateHybridResponse(
   }
 
   // Perform search
+  console.log('[Edge Orchestration] Initiating web search...');
   const searchContext = await performSearch(lastUserMessage.content);
 
   if (!searchContext) {
+    console.log('[Edge Orchestration] Search failed or returned no results');
     return {
       enhancedMessages: messages,
       searchPerformed: false,
@@ -107,14 +124,16 @@ export async function orchestrateHybridResponse(
     };
   }
 
-  // Inject search context
+  console.log('[Edge Orchestration] Search successful, injecting context');
+
+  // Inject search context as a system message right after the user's question
+  // This ensures the AI sees the search results immediately after the query
   const enhancedMessages = [
-    ...messages.slice(0, -1),
+    ...messages,
     {
       role: 'system' as const,
-      content: `Web search results:\n${searchContext}`
-    },
-    lastUserMessage
+      content: `[Current web search results for the user's query]:\n${searchContext}\n\nUse this information to provide an accurate, up-to-date response.`
+    }
   ];
 
   return {
