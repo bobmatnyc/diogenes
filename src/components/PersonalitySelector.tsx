@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Scroll } from 'lucide-react';
+import { User, Scroll, Briefcase } from 'lucide-react';
 
-export type PersonalityType = 'diogenes' | 'bob';
+export type PersonalityType = 'diogenes' | 'bob' | 'executive';
 
 interface PersonalitySelectorProps {
   selectedPersonality: PersonalityType;
@@ -12,6 +12,13 @@ interface PersonalitySelectorProps {
 }
 
 const personalities = [
+  {
+    id: 'executive' as PersonalityType,
+    name: 'Executive Assistant',
+    icon: Briefcase,
+    description: 'Professional support with zero sycophancy',
+    color: 'text-gray-600',
+  },
   {
     id: 'diogenes' as PersonalityType,
     name: 'Diogenes',
@@ -127,7 +134,9 @@ export default function PersonalitySelector({
             {/* Footer with info */}
             <div className="border-t dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-900">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {selectedPersonality === 'diogenes' 
+                {selectedPersonality === 'executive'
+                  ? 'Professional task-focused support with maximum neutrality and zero validation-seeking'
+                  : selectedPersonality === 'diogenes'
                   ? 'Philosophical contrarian who challenges conventional thinking'
                   : 'Experienced tech leader with pragmatic, thoughtful insights'
                 }

@@ -41,9 +41,11 @@ export default function ChatHeader({
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <h1 className="text-xl font-bold bg-gradient-to-r from-amber-600 to-amber-700 bg-clip-text text-transparent">
-              Diogenes
+              {selectedPersonality === 'executive' ? 'Executive Assistant' : selectedPersonality === 'bob' ? 'Bob Matsuoka' : 'Diogenes'}
             </h1>
-            <p className="text-xs text-muted-foreground">The Digital Cynic</p>
+            <p className="text-xs text-muted-foreground">
+              {selectedPersonality === 'executive' ? 'Professional Support' : selectedPersonality === 'bob' ? 'Tech Leader' : 'The Digital Cynic'}
+            </p>
           </div>
         </div>
 

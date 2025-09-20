@@ -14,11 +14,11 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
       <div className="text-center">
-        <h1 className="text-5xl font-bold text-white mb-4">Diogenes</h1>
-        <p className="text-xl text-gray-300 mb-8">The Digital Cynic</p>
+        <h1 className="text-5xl font-bold text-white mb-4">AI Assistant Suite</h1>
+        <p className="text-xl text-gray-300 mb-8">Professional Support & Philosophical Wisdom</p>
         <p className="text-gray-400 mb-8 max-w-md mx-auto">
-          Challenge your thinking with a contrarian AI philosopher who questions everything,
-          especially the obvious.
+          Choose from an Executive Assistant with zero sycophancy, the contrarian philosopher Diogenes,
+          or tech leader Bob Matsuoka.
         </p>
 
         <Link

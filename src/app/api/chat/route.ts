@@ -1,20 +1,22 @@
 import type { NextRequest } from 'next/server';
 import { type DelegationConfig, orchestrateHybridResponse } from '@/lib/agents/delegation-handler-edge';
 // Using lightweight Edge-optimized anti-sycophancy
-import { 
-  createAntiSycophancyTransform, 
-  ANTI_SYCOPHANCY_PROMPT 
+import {
+  createAntiSycophancyTransform,
+  ANTI_SYCOPHANCY_PROMPT
 } from '@/lib/ai/anti-sycophancy-edge';
 import { createStreamingResponse, openRouterToStream } from '@/lib/ai/streaming-fix';
 import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
 // Using minimal prompts for Edge Function size optimization
-import { DIOGENES_MINIMAL, BOB_MINIMAL } from '@/lib/prompts/minimal-prompts';
+import { DIOGENES_MINIMAL, BOB_MINIMAL, EXECUTIVE_ASSISTANT_MINIMAL } from '@/lib/prompts/minimal-prompts';
 // Full prompts available but commented for size:
 // import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 // import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
 import { getVersionHeaders } from '@/lib/version';
 import { validateEnvironmentEdge } from '@/lib/env-edge';
 import { estimateMessagesTokens } from '@/lib/tokens-edge';
+import { getMemoryClient } from '@/lib/memory/client';
+import type { SaveInteractionRequest } from '@/lib/memory/types';
 
 // Validate environment on module load (Edge-compatible version)
 validateEnvironmentEdge();
@@ -31,10 +33,26 @@ export const config = {
 // Metrics aggregator removed for Edge Function size optimization
 // const metricsAggregator = new MetricsAggregator();
 
-// Lightweight personalized system prompt with anti-sycophancy
-function createPersonalizedPrompt(firstName: string, personality: 'diogenes' | 'bob' = 'diogenes'): string {
-  const basePrompt = personality === 'bob' ? BOB_MINIMAL : DIOGENES_MINIMAL;
-  return `${basePrompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nYou are speaking with ${firstName}.`;
+// Lightweight personalized system prompt with anti-sycophancy and memory context
+function createPersonalizedPrompt(
+  firstName: string,
+  personality: 'diogenes' | 'bob' | 'executive' = 'executive',
+  memoryContext?: string
+): string {
+  const basePrompt = personality === 'executive' ? EXECUTIVE_ASSISTANT_MINIMAL : (personality === 'bob' ? BOB_MINIMAL : DIOGENES_MINIMAL);
+
+  let prompt = basePrompt;
+
+  // Add memory context if available
+  if (memoryContext) {
+    prompt = `${prompt}\n\n${memoryContext}`;
+  }
+
+  // For executive, add maximum anti-sycophancy
+  if (personality === 'executive') {
+    return `${prompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nMaximize anti-sycophancy. Zero validation-seeking. Pure task focus.\n\nYou are assisting ${firstName}.`;
+  }
+  return `${prompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nYou are speaking with ${firstName}.`;
 }
 
 export async function POST(req: NextRequest) {
@@ -70,17 +88,25 @@ export async function POST(req: NextRequest) {
     let messages;
     let firstName;
     let selectedModel;
-    let selectedPersonality: 'diogenes' | 'bob';
+    let selectedPersonality: 'diogenes' | 'bob' | 'executive';
+    let userId;
+    let userEmail;
+    let debugMode = false;
     try {
       const body = await req.json();
       messages = body.messages;
       firstName = body.firstName || 'wanderer'; // Default to 'wanderer' if no name provided
       selectedModel = body.model || DEFAULT_MODEL; // Use selected model or default
-      selectedPersonality = body.personality || 'diogenes'; // Default to 'diogenes' if no personality specified
+      selectedPersonality = body.personality || 'executive'; // Default to 'executive' if no personality specified
+      userId = body.userId; // Clerk user ID
+      userEmail = body.userEmail;
+      debugMode = body.debugMode === true;
       console.log('[Edge Runtime] Received messages:', messages?.length || 0);
       console.log('[Edge Runtime] User firstName:', firstName);
       console.log('[Edge Runtime] Selected model:', selectedModel);
       console.log('[Edge Runtime] Selected personality:', selectedPersonality);
+      if (userId) console.log('[Edge Runtime] User ID:', userId);
+      if (debugMode) console.log('[Edge Runtime] Debug mode enabled');
     } catch (parseError) {
       console.error('[Edge Runtime] Failed to parse request body:', parseError);
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
@@ -114,6 +140,49 @@ export async function POST(req: NextRequest) {
     // Anti-sycophancy middleware removed for Edge Function size optimization
     const antiSycophancyEnabled = false;
 
+    // Initialize memory client and search for relevant memories
+    let memoryContext = '';
+    let memoryDebugInfo = null;
+    let userEntity = null;
+    const memoryClient = getMemoryClient();
+
+    if (memoryClient && userId) {
+      try {
+        console.log('[Edge Runtime] Initializing memory system for user:', userId);
+
+        // Get or create user entity
+        userEntity = await memoryClient.getOrCreateUserEntity(userId, firstName, userEmail);
+
+        if (userEntity) {
+          // Get the last user message for context search
+          const lastUserMessage = messages
+            .filter((m: any) => m.role === 'user')
+            .pop()?.content || '';
+
+          // Search for relevant memories
+          const memoryResult = await memoryClient.searchRelevantMemories(
+            lastUserMessage,
+            userEntity.id,
+            10 // Limit to 10 most relevant memories
+          );
+
+          if (memoryResult.memories.length > 0) {
+            memoryContext = memoryResult.summary;
+            console.log('[Edge Runtime] Found', memoryResult.memories.length, 'relevant memories');
+          }
+
+          // Get debug info if in debug mode
+          if (debugMode) {
+            memoryDebugInfo = memoryClient.getDebugInfo();
+            memoryClient.clearDebugInfo();
+          }
+        }
+      } catch (error) {
+        console.error('[Edge Runtime] Memory system error:', error);
+        // Continue without memory context - don't break the chat
+      }
+    }
+
     // Filter out system messages from user input
     const userMessages = messages.filter((m: any) => m.role !== 'system');
 
@@ -131,8 +200,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Ensure system prompt is always first with personalization
-    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality);
+    // Ensure system prompt is always first with personalization and memory context
+    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality, memoryContext);
     const systemMessage = {
       role: 'system' as const,
       content: personalizedPrompt,
@@ -256,9 +325,9 @@ export async function POST(req: NextRequest) {
       const stream = openRouterToStream(response);
 
       // Apply lightweight anti-sycophancy transform that preserves SSE format
-      // Only enable for Diogenes personality (Bob can be agreeable)
-      const antiSycophancyEnabled = selectedPersonality === 'diogenes';
-      const aggressiveness = 8; // High for Diogenes
+      // Maximum for Executive (10), High for Diogenes (8), None for Bob
+      const antiSycophancyEnabled = selectedPersonality === 'executive' || selectedPersonality === 'diogenes';
+      const aggressiveness = selectedPersonality === 'executive' ? 10 : (selectedPersonality === 'diogenes' ? 8 : 0);
       
       const enhancedStream = antiSycophancyEnabled 
         ? stream.pipeThrough(createAntiSycophancyTransform(aggressiveness))
@@ -291,11 +360,35 @@ export async function POST(req: NextRequest) {
         headers['X-Search-Context-Tokens'] = searchContextTokens.toString();
       }
 
+      // Add memory debug info if in debug mode
+      if (debugMode && memoryDebugInfo) {
+        headers['X-Memory-Debug'] = JSON.stringify(memoryDebugInfo);
+      }
+
+      // Add memory context indicator
+      if (memoryContext) {
+        headers['X-Memory-Context-Used'] = 'true';
+        headers['X-Memory-Context-Tokens'] = estimateMessagesTokens([{ role: 'system', content: memoryContext }]).toString();
+      }
+
       // Add version headers
       const versionHeaders = getVersionHeaders();
       Object.entries(versionHeaders).forEach(([key, value]) => {
         headers[key] = value;
       });
+
+      // Store the interaction in memory after successful response
+      if (memoryClient && userEntity) {
+        // Get the last user message and construct assistant response from stream
+        const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+
+        // Note: We can't capture the full streamed response here, so we'll need to handle it in the client
+        // For now, we'll store a placeholder that will be updated from the client side
+
+        // Set a flag in headers to indicate memory storage should happen client-side
+        headers['X-Memory-Entity-Id'] = userEntity.id;
+        headers['X-Memory-Should-Store'] = 'true';
+      }
 
       // Use the createStreamingResponse function which handles the type conversion properly
       return createStreamingResponse(enhancedStream, headers);

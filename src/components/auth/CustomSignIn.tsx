@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useSignIn, useSignUp } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { OAuthStrategy } from '@clerk/types';
 import EmailVerification from './EmailVerification';
+
+type OAuthStrategy = 'oauth_google' | 'oauth_facebook' | 'oauth_twitter';
 
 interface CustomSignInProps {
   redirectUrl?: string;
