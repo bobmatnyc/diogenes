@@ -2,13 +2,16 @@ import type { NextRequest } from 'next/server';
 import { type DelegationConfig, orchestrateHybridResponse } from '@/lib/agents/delegation-handler-edge';
 // Using lightweight Edge-optimized anti-sycophancy
 import {
-  createAntiSycophancyTransform,
-  ANTI_SYCOPHANCY_PROMPT
+  createAntiSycophancyTransform
 } from '@/lib/ai/anti-sycophancy-edge';
 import { createStreamingResponse, openRouterToStream } from '@/lib/ai/streaming-fix';
 import { DEFAULT_MODEL, getOpenRouterClient } from '@/lib/openrouter';
-// Using minimal prompts for Edge Function size optimization
-import { DIOGENES_MINIMAL, BOB_MINIMAL, EXECUTIVE_ASSISTANT_MINIMAL } from '@/lib/prompts/minimal-prompts';
+// Using new layered personality architecture
+import {
+  composePersonalityPrompt,
+  getAntiSycophancyLevel,
+  type PersonalityType
+} from '@/lib/personality/composer';
 // Full prompts available but commented for size:
 // import { DIOGENES_SYSTEM_PROMPT } from '@/lib/prompts/core-principles';
 // import { BOB_MATSUOKA_SYSTEM_PROMPT } from '@/lib/prompts/bob-matsuoka';
@@ -33,26 +36,21 @@ export const config = {
 // Metrics aggregator removed for Edge Function size optimization
 // const metricsAggregator = new MetricsAggregator();
 
-// Lightweight personalized system prompt with anti-sycophancy and memory context
+// Create personalized prompt using the new layered architecture
 function createPersonalizedPrompt(
   firstName: string,
-  personality: 'diogenes' | 'bob' | 'executive' = 'executive',
-  memoryContext?: string
+  personality: PersonalityType = 'executive',
+  memoryContext?: string,
+  debugMode?: boolean
 ): string {
-  const basePrompt = personality === 'executive' ? EXECUTIVE_ASSISTANT_MINIMAL : (personality === 'bob' ? BOB_MINIMAL : DIOGENES_MINIMAL);
-
-  let prompt = basePrompt;
-
-  // Add memory context if available
-  if (memoryContext) {
-    prompt = `${prompt}\n\n${memoryContext}`;
-  }
-
-  // For executive, add maximum anti-sycophancy
-  if (personality === 'executive') {
-    return `${prompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nMaximize anti-sycophancy. Zero validation-seeking. Pure task focus.\n\nYou are assisting ${firstName}.`;
-  }
-  return `${prompt}\n\n${ANTI_SYCOPHANCY_PROMPT}\n\nYou are speaking with ${firstName}.`;
+  return composePersonalityPrompt({
+    personality,
+    mode: 'minimal', // Use minimal mode for Edge Runtime
+    antiSycophancyLevel: getAntiSycophancyLevel(personality),
+    memoryContext,
+    debugMode,
+    userName: firstName
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -88,7 +86,7 @@ export async function POST(req: NextRequest) {
     let messages;
     let firstName;
     let selectedModel;
-    let selectedPersonality: 'diogenes' | 'bob' | 'executive';
+    let selectedPersonality: PersonalityType;
     let userId;
     let userEmail;
     let debugMode = false;
@@ -201,7 +199,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure system prompt is always first with personalization and memory context
-    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality, memoryContext);
+    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality, memoryContext, debugMode);
     const systemMessage = {
       role: 'system' as const,
       content: personalizedPrompt,
@@ -325,9 +323,9 @@ export async function POST(req: NextRequest) {
       const stream = openRouterToStream(response);
 
       // Apply lightweight anti-sycophancy transform that preserves SSE format
-      // Maximum for Executive (10), High for Diogenes (8), None for Bob
-      const antiSycophancyEnabled = selectedPersonality === 'executive' || selectedPersonality === 'diogenes';
-      const aggressiveness = selectedPersonality === 'executive' ? 10 : (selectedPersonality === 'diogenes' ? 8 : 0);
+      // Using the new getAntiSycophancyLevel function for consistency
+      const aggressiveness = getAntiSycophancyLevel(selectedPersonality);
+      const antiSycophancyEnabled = aggressiveness > 0;
       
       const enhancedStream = antiSycophancyEnabled 
         ? stream.pipeThrough(createAntiSycophancyTransform(aggressiveness))
