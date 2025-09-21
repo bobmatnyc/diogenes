@@ -20,6 +20,7 @@ import { validateEnvironmentEdge } from '@/lib/env-edge';
 import { estimateMessagesTokens } from '@/lib/tokens-edge';
 import { getMemoryClientEdge } from '@/lib/memory/client-edge';
 import type { SaveInteractionRequest } from '@/lib/memory/types';
+import { getContextWindowStatus, type CompactionSummary } from '@/lib/context-compaction';
 
 // Validate environment on module load (Edge-compatible version)
 validateEnvironmentEdge();
@@ -351,6 +352,10 @@ export async function POST(req: NextRequest) {
 
       console.log('[Edge Runtime] Returning streaming response');
 
+      // Calculate context window status
+      const contextSummaries: CompactionSummary[] = []; // TODO: Load from session/memory
+      const contextStatus = getContextWindowStatus(userMessages, contextSummaries);
+
       // Create headers for the response
       const headers: HeadersInit = {};
 
@@ -359,14 +364,12 @@ export async function POST(req: NextRequest) {
         headers['X-Search-Delegated'] = 'true';
       }
 
-      // Add context space tracking headers
-      const contextTokens = estimateMessagesTokens(messages);
-      const maxContextTokens = 128000; // Claude's context window
-      const contextUsagePercent = Math.round((contextTokens / maxContextTokens) * 100);
-      
-      headers['X-Context-Tokens'] = contextTokens.toString();
-      headers['X-Context-Max-Tokens'] = maxContextTokens.toString();
-      headers['X-Context-Usage-Percent'] = contextUsagePercent.toString();
+      // Add context space tracking headers with compaction awareness
+      headers['X-Context-Tokens'] = contextStatus.currentTokens.toString();
+      headers['X-Context-Max-Tokens'] = contextStatus.maxTokens.toString();
+      headers['X-Context-Usage-Percent'] = contextStatus.utilizationPercent.toFixed(2);
+      headers['X-Context-Compacted'] = (contextSummaries.length > 0).toString();
+      headers['X-Context-Summaries'] = contextSummaries.length.toString();
       
       // Add search context size if search was performed
       if (searchContext) {
@@ -383,6 +386,12 @@ export async function POST(req: NextRequest) {
       if (memoryContext) {
         headers['X-Memory-Context-Used'] = 'true';
         headers['X-Memory-Context-Tokens'] = estimateMessagesTokens([{ role: 'system', content: memoryContext }]).toString();
+      }
+
+      // Add entity ID and storage flag for memory system
+      if (userEntity) {
+        headers['X-Memory-Entity-Id'] = userEntity.id;
+        headers['X-Memory-Should-Store'] = (!!userEntity && !!userId).toString();
       }
 
       // Add version headers

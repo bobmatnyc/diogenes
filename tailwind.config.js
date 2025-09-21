@@ -8,6 +8,9 @@ module.exports = {
   ],
   theme: {
   	extend: {
+  		screens: {
+  			'xs': '475px',
+  		},
   		colors: {
   			'diogenes-primary': '#8B4513',
   			'diogenes-secondary': '#D2691E',

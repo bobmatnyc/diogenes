@@ -1,0 +1,189 @@
+{
+  "timestamp": "2025-09-21T22:45:48.306Z",
+  "baseUrl": "http://localhost:3000",
+  "testResults": [
+    {
+      "viewport": "iPhone_SE",
+      "description": "Mobile (iPhone SE)",
+      "dimensions": "320x568",
+      "tests": [
+        {
+          "name": "Landing Page Load",
+          "status": "PASS",
+          "details": "Title: \"Diogenes - The Digital Cynic\", Errors detected: false"
+        },
+        {
+          "name": "No Horizontal Scrolling",
+          "status": "PASS",
+          "details": "Body width: 320px, Viewport: 320px"
+        },
+        {
+          "name": "Authentication Elements Present",
+          "status": "SKIP",
+          "details": "Auth elements found: 0, Sign-in buttons: 0"
+        },
+        {
+          "name": "Chat Interface Elements",
+          "status": "FAIL",
+          "details": "Chat inputs: 0, Chat containers: 0"
+        },
+        {
+          "name": "Touch Target Size (44px minimum)",
+          "status": "WARNING",
+          "details": "Small targets found: 5 (< 44px)"
+        },
+        {
+          "name": "Test Dashboard Access",
+          "status": "PASS",
+          "details": "Test elements found: 7"
+        },
+        {
+          "name": "Navigation Elements",
+          "status": "PASS",
+          "details": "Navigation containers: 0, Links: 1"
+        },
+        {
+          "name": "Typography and Layout",
+          "status": "PASS",
+          "details": "Headings: 1, Paragraphs: 4, Small text elements: 0"
+        }
+      ]
+    },
+    {
+      "viewport": "iPhone_8",
+      "description": "Mobile (iPhone 8)",
+      "dimensions": "375x667",
+      "tests": [
+        {
+          "name": "Landing Page Load",
+          "status": "PASS",
+          "details": "Title: \"Diogenes - The Digital Cynic\", Errors detected: false"
+        },
+        {
+          "name": "No Horizontal Scrolling",
+          "status": "PASS",
+          "details": "Body width: 375px, Viewport: 375px"
+        },
+        {
+          "name": "Authentication Elements Present",
+          "status": "SKIP",
+          "details": "Auth elements found: 0, Sign-in buttons: 0"
+        },
+        {
+          "name": "Chat Interface Elements",
+          "status": "FAIL",
+          "details": "Chat inputs: 0, Chat containers: 0"
+        },
+        {
+          "name": "Touch Target Size (44px minimum)",
+          "status": "WARNING",
+          "details": "Small targets found: 5 (< 44px)"
+        },
+        {
+          "name": "Test Dashboard Access",
+          "status": "PASS",
+          "details": "Test elements found: 7"
+        },
+        {
+          "name": "Navigation Elements",
+          "status": "PASS",
+          "details": "Navigation containers: 0, Links: 1"
+        },
+        {
+          "name": "Typography and Layout",
+          "status": "PASS",
+          "details": "Headings: 1, Paragraphs: 4, Small text elements: 0"
+        }
+      ]
+    },
+    {
+      "viewport": "iPad",
+      "description": "Tablet (iPad)",
+      "dimensions": "768x1024",
+      "tests": [
+        {
+          "name": "Landing Page Load",
+          "status": "PASS",
+          "details": "Title: \"Diogenes - The Digital Cynic\", Errors detected: false"
+        },
+        {
+          "name": "No Horizontal Scrolling",
+          "status": "PASS",
+          "details": "Body width: 768px, Viewport: 768px"
+        },
+        {
+          "name": "Authentication Elements Present",
+          "status": "SKIP",
+          "details": "Auth elements found: 0, Sign-in buttons: 0"
+        },
+        {
+          "name": "Chat Interface Elements",
+          "status": "FAIL",
+          "details": "Chat inputs: 0, Chat containers: 0"
+        },
+        {
+          "name": "Touch Target Size (44px minimum)",
+          "status": "WARNING",
+          "details": "Small targets found: 5 (< 44px)"
+        },
+        {
+          "name": "Test Dashboard Access",
+          "status": "PASS",
+          "details": "Test elements found: 7"
+        },
+        {
+          "name": "Navigation Elements",
+          "status": "PASS",
+          "details": "Navigation containers: 0, Links: 1"
+        },
+        {
+          "name": "Typography and Layout",
+          "status": "PASS",
+          "details": "Headings: 1, Paragraphs: 4, Small text elements: 0"
+        }
+      ]
+    },
+    {
+      "viewport": "MacBook",
+      "description": "Desktop (MacBook)",
+      "dimensions": "1440x900",
+      "tests": [
+        {
+          "name": "Landing Page Load",
+          "status": "PASS",
+          "details": "Title: \"Diogenes - The Digital Cynic\", Errors detected: false"
+        },
+        {
+          "name": "No Horizontal Scrolling",
+          "status": "PASS",
+          "details": "Body width: 1440px, Viewport: 1440px"
+        },
+        {
+          "name": "Authentication Elements Present",
+          "status": "SKIP",
+          "details": "Auth elements found: 0, Sign-in buttons: 0"
+        },
+        {
+          "name": "Chat Interface Elements",
+          "status": "FAIL",
+          "details": "Chat inputs: 0, Chat containers: 0"
+        },
+        {
+          "name": "Test Dashboard Access",
+          "status": "PASS",
+          "details": "Test elements found: 7"
+        },
+        {
+          "name": "Navigation Elements",
+          "status": "PASS",
+          "details": "Navigation containers: 0, Links: 1"
+        },
+        {
+          "name": "Typography and Layout",
+          "status": "PASS",
+          "details": "Headings: 1, Paragraphs: 4, Small text elements: 0"
+        }
+      ]
+    }
+  ]
+}

@@ -29,16 +29,16 @@ export default function ChatMessage({ message, userName = 'You' }: ChatMessagePr
       )}
     >
       {!isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
+        <Avatar className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 mt-1">
           <AvatarFallback className="bg-gradient-to-br from-amber-600 to-amber-700">
-            <Bot className="h-4 w-4 text-white" />
+            <Bot className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
           </AvatarFallback>
         </Avatar>
       )}
-      
+
       <Card
         className={cn(
-          'max-w-[80%] p-4 shadow-sm transition-all',
+          'max-w-[90%] sm:max-w-[80%] p-3 sm:p-4 shadow-sm transition-all',
           isUser
             ? 'bg-primary text-primary-foreground border-primary/20'
             : 'bg-card hover:shadow-md'
@@ -115,9 +115,9 @@ export default function ChatMessage({ message, userName = 'You' }: ChatMessagePr
       </Card>
 
       {isUser && (
-        <Avatar className="h-8 w-8 shrink-0">
+        <Avatar className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 mt-1">
           <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700">
-            <User className="h-4 w-4 text-white" />
+            <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
           </AvatarFallback>
         </Avatar>
       )}

@@ -8,16 +8,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Database, Bug } from 'lucide-react';
 import { isDevelopment } from '@/lib/env';
-import { getRandomStarter } from '@/lib/prompts/core-principles';
-import { BOB_CONVERSATION_STARTERS } from '@/lib/prompts/bob-matsuoka';
-import { getExecutiveAssistantStarter } from '@/lib/prompts/executive-assistant';
+import { getConversationStarter } from '@/lib/personality/composer';
 import { type PersonalityType } from '@/components/PersonalitySelector';
 import {
   addMessageToSession,
   clearSession,
   createNewSession,
-  getSession
+  getSession,
+  handleUserLogin,
+  initializeMemoryClient,
+  getSessionContextSummaries
 } from '@/lib/session';
+import { getContextWindowStatus } from '@/lib/context-compaction';
 import {
   calculateCost,
   estimateMessagesTokens,
@@ -58,7 +60,9 @@ export default function ChatInterface() {
     tokens: number;
     maxTokens: number;
     percent: number;
-  }>({ tokens: 0, maxTokens: 128000, percent: 0 });
+    wasCompacted: boolean;
+    summaryCount: number;
+  }>({ tokens: 0, maxTokens: 128000, percent: 0, wasCompacted: false, summaryCount: 0 });
   const [debugMode, setDebugMode] = useState(false);
   const [memoryDebugInfo, setMemoryDebugInfo] = useState<MemoryDebugInfo | null>(null);
   const [memoryUsed, setMemoryUsed] = useState(false);
@@ -68,14 +72,59 @@ export default function ChatInterface() {
     assistantResponse: string;
   } | null>(null);
   const { user } = useUser();
+  const [sessionInitialized, setSessionInitialized] = useState(false);
 
-  // Initialize session
-  const session = getSession() || createNewSession();
+  // Initialize session state (will be async initialized)
+  const [session, setSession] = useState(getSession());
 
   // Get user's first name for personalization
   const firstName = isDevelopment()
     ? 'Bob' // Hardcoded for development
     : user?.firstName || user?.username || 'wanderer';
+
+  // Initialize memory client and handle user login
+  useEffect(() => {
+    const initializeSession = async () => {
+      if (user) {
+        // Initialize memory client with API key from environment
+        const memoryApiKey = process.env.NEXT_PUBLIC_MEMORY_API_KEY || 'internal_diogenes_key';
+        initializeMemoryClient(memoryApiKey);
+
+        // Handle user login and session management
+        await handleUserLogin(
+          user.id,
+          user.fullName || user.username || 'User',
+          user.primaryEmailAddress?.emailAddress
+        );
+
+        // Create or get session
+        let currentSession = getSession();
+        if (!currentSession) {
+          currentSession = await createNewSession();
+          setSession(currentSession);
+        }
+
+        setSessionInitialized(true);
+      }
+    };
+
+    initializeSession();
+  }, [user]);
+
+  // Update context usage when messages change
+  useEffect(() => {
+    if (session) {
+      const summaries = getSessionContextSummaries();
+      const status = getContextWindowStatus(session.messages, summaries);
+      setContextUsage({
+        tokens: status.currentTokens,
+        maxTokens: status.maxTokens,
+        percent: status.utilizationPercent,
+        wasCompacted: summaries.length > 0,
+        summaryCount: summaries.length
+      });
+    }
+  }, [session, messages]);
 
   // Load saved preferences on mount and listen for updates
   useEffect(() => {
@@ -122,13 +171,12 @@ export default function ChatInterface() {
 
   // Add welcome message on first load
   useEffect(() => {
-    const currentSession = getSession();
-    if (!currentSession || currentSession.messages.length === 0) {
-      const welcomeContent = selectedPersonality === 'executive'
-        ? getExecutiveAssistantStarter()
-        : selectedPersonality === 'bob'
-        ? BOB_CONVERSATION_STARTERS[Math.floor(Math.random() * BOB_CONVERSATION_STARTERS.length)]
-        : getRandomStarter();
+    const initializeWelcome = async () => {
+      if (!sessionInitialized) return;
+
+      const currentSession = getSession();
+      if (!currentSession || currentSession.messages.length === 0) {
+      const welcomeContent = getConversationStarter(selectedPersonality, firstName);
 
       const welcomeMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -139,12 +187,13 @@ export default function ChatInterface() {
       setMessages([welcomeMessage]);
 
       // Save welcome message to session
-      const newSession = createNewSession();
-      addMessageToSession(newSession, {
+      const newSession = await createNewSession();
+      await addMessageToSession(newSession, {
         ...welcomeMessage,
         timestamp: new Date(),
       });
-    } else {
+        setSession(newSession);
+      } else {
       // Load messages from session
       const sessionMessages: ChatMessage[] = currentSession.messages.map((msg) => ({
         id: msg.id,
@@ -152,8 +201,11 @@ export default function ChatInterface() {
         content: msg.content,
       }));
       setMessages(sessionMessages);
-    }
-  }, []);
+      }
+    };
+
+    initializeWelcome();
+  }, [sessionInitialized, selectedPersonality]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -166,8 +218,8 @@ export default function ChatInterface() {
     setShowNewChatDialog(true);
   }, []);
 
-  const handleConfirmNewChat = useCallback(() => {
-    clearSession();
+  const handleConfirmNewChat = useCallback(async () => {
+    await clearSession();
     window.location.reload();
   }, []);
 
@@ -232,8 +284,15 @@ export default function ChatInterface() {
       },
     };
 
-    const currentSession = getSession() || createNewSession();
-    addMessageToSession(currentSession, sessionUserMessage);
+    const currentSession = getSession() || await createNewSession();
+    const updatedSession = await addMessageToSession(currentSession, sessionUserMessage);
+    setSession(updatedSession);
+
+    // Check if context was compacted
+    const summaries = getSessionContextSummaries();
+    if (summaries.length > 0) {
+      console.log(`Using ${summaries.length} context summaries in request`);
+    }
 
     try {
       // Send to API
@@ -253,6 +312,7 @@ export default function ChatInterface() {
           userId: user?.id,
           userEmail: user?.primaryEmailAddress?.emailAddress,
           debugMode: debugMode,
+          contextSummaries: summaries, // Include context summaries
         }),
       });
 
@@ -303,12 +363,16 @@ export default function ChatInterface() {
       const contextTokensHeader = response.headers.get('X-Context-Tokens');
       const maxContextTokensHeader = response.headers.get('X-Context-Max-Tokens');
       const contextPercentHeader = response.headers.get('X-Context-Usage-Percent');
+      const contextCompactedHeader = response.headers.get('X-Context-Compacted');
+      const contextSummariesHeader = response.headers.get('X-Context-Summaries');
 
       if (contextTokensHeader && maxContextTokensHeader && contextPercentHeader) {
         setContextUsage({
           tokens: parseInt(contextTokensHeader, 10),
           maxTokens: parseInt(maxContextTokensHeader, 10),
-          percent: parseInt(contextPercentHeader, 10)
+          percent: parseFloat(contextPercentHeader),
+          wasCompacted: contextCompactedHeader === 'true',
+          summaryCount: contextSummariesHeader ? parseInt(contextSummariesHeader, 10) : 0
         });
       }
 
@@ -372,7 +436,19 @@ export default function ChatInterface() {
         },
       };
 
-      addMessageToSession(currentSession, sessionAssistantMessage);
+      const finalSession = await addMessageToSession(currentSession, sessionAssistantMessage);
+      setSession(finalSession);
+
+      // Update context usage after adding message
+      const finalSummaries = getSessionContextSummaries();
+      const finalStatus = getContextWindowStatus(finalSession.messages, finalSummaries);
+      setContextUsage({
+        tokens: finalStatus.currentTokens,
+        maxTokens: finalStatus.maxTokens,
+        percent: finalStatus.utilizationPercent,
+        wasCompacted: finalSummaries.length > 0,
+        summaryCount: finalSummaries.length
+      });
 
       // Store interaction in memory if entity ID was provided
       if (memoryEntityId && fullContent) {
@@ -440,10 +516,18 @@ export default function ChatInterface() {
   }, [messages, isLoading, firstName, selectedModel, selectedPersonality]);
 
   // Get current session for token metrics
-  const currentSession = getSession() || createNewSession();
+  // Use the session state, or create an empty placeholder
+  const currentSession = session || {
+    id: 'temp',
+    messages: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    totalTokens: 0,
+    totalCost: 0
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="flex flex-col h-[100dvh] bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
       <ChatHeader
         session={currentSession}
@@ -452,16 +536,18 @@ export default function ChatInterface() {
         onDownloadTranscript={handleDownloadTranscript}
         userName={firstName}
         messagesCount={messages.length}
+        contextUsage={contextUsage}
       />
 
       {/* Context Usage Bar */}
       {contextUsage.tokens > 0 && (
-        <div className="px-4 py-2 border-b bg-muted/30">
-          <div className="max-w-4xl mx-auto flex items-center gap-4">
-            <div className="flex-1">
+        <div className="px-2 sm:px-4 py-2 border-b bg-muted/30">
+          <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="font-mono text-muted-foreground">
-                  Context: {contextUsage.tokens.toLocaleString()} / {contextUsage.maxTokens.toLocaleString()} tokens
+                <span className="font-mono text-muted-foreground truncate">
+                  <span className="hidden sm:inline">Context: </span>
+                  {contextUsage.tokens.toLocaleString()} / <span className="hidden xs:inline">{contextUsage.maxTokens.toLocaleString()}</span><span className="xs:hidden">128K</span> tokens
                 </span>
                 <span className={cn(
                   "font-mono font-medium",
@@ -518,9 +604,9 @@ export default function ChatInterface() {
 
       {/* Memory Debug Info Panel */}
       {debugMode && memoryDebugInfo && (
-        <div className="px-4 py-2 border-b bg-muted/50">
+        <div className="px-2 sm:px-4 py-2 border-b bg-muted/50 overflow-x-auto">
           <div className="max-w-4xl mx-auto">
-            <div className="text-xs font-mono space-y-1">
+            <div className="text-xs font-mono space-y-1 min-w-max">
               <div className="font-semibold text-muted-foreground mb-1">Memory Debug Info:</div>
               {memoryDebugInfo.retrieval && (
                 <div>
@@ -551,16 +637,16 @@ export default function ChatInterface() {
       )}
 
       {/* Messages Area */}
-      <ScrollArea 
+      <ScrollArea
         ref={scrollAreaRef}
-        className="flex-1 px-4"
+        className="flex-1 px-2 sm:px-4 overflow-y-auto"
       >
-        <div className="max-w-4xl mx-auto py-6 space-y-4">
+        <div className="max-w-4xl mx-auto py-4 sm:py-6 space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <Card className="p-8 text-center">
-              <h2 className="text-2xl font-semibold mb-2">Welcome, {firstName}</h2>
-              <p className="text-muted-foreground">
-                Challenge me with your questions. I shall respond with the brutal honesty 
+            <Card className="p-4 sm:p-8 text-center">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Welcome, {firstName}</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Challenge me with your questions. I shall respond with the brutal honesty
                 that modern society desperately needs.
               </p>
             </Card>
@@ -603,7 +689,7 @@ export default function ChatInterface() {
 
       {/* Input Area */}
       <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4">
           <ChatInput
             onSubmit={handleSendMessage}
             isLoading={isLoading}

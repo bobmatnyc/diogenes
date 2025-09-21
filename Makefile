@@ -47,6 +47,15 @@ test-coverage: ## Run tests with coverage
 	@echo "$(YELLOW)Running tests with coverage...$(RESET)"
 	pnpm run test:coverage
 
+test-e2e: ## Run end-to-end tests
+	@echo "$(YELLOW)Running end-to-end tests...$(RESET)"
+	@echo "$(BLUE)Ensuring dev server is running...$(RESET)"
+	@pnpm run test:e2e
+
+test-e2e-watch: ## Run e2e tests in watch mode
+	@echo "$(YELLOW)Running e2e tests in watch mode...$(RESET)"
+	pnpm run test:e2e:watch
+
 lint: ## Lint code and show issues
 	@echo "$(YELLOW)Linting with Biome...$(RESET)"
 	pnpm run lint:biome

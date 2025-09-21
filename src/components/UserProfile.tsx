@@ -35,15 +35,15 @@ export function UserProfile() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 px-2 hover:bg-accent">
-            <Avatar className="h-8 w-8">
+          <Button variant="ghost" className="relative h-8 sm:h-10 px-1 sm:px-2 hover:bg-accent">
+            <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
               <AvatarImage src={user.imageUrl} alt={displayName} />
               <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <span className="ml-2 hidden md:inline-block text-sm">{displayName}</span>
-            <ChevronDown className="ml-1 h-4 w-4 opacity-50" />
+            <ChevronDown className="ml-1 h-3 w-3 sm:h-4 sm:w-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>

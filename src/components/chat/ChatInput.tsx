@@ -42,7 +42,7 @@ export default function ChatInput({
     <form
       onSubmit={handleSubmit}
       className={cn(
-        'flex items-center gap-2 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60',
+        'flex items-center gap-2 p-2 sm:p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60',
         className
       )}
     >
@@ -53,26 +53,26 @@ export default function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
-          className="pr-12 h-12 text-base shadow-sm border-muted-foreground/20 focus:border-primary transition-colors"
+          className="h-10 sm:h-12 text-sm sm:text-base shadow-sm border-muted-foreground/20 focus:border-primary transition-colors"
           autoFocus
         />
       </div>
-      
+
       <Button
         type="submit"
         disabled={!inputValue.trim() || isLoading}
         size="lg"
-        className="h-12 px-6 shadow-sm hover:shadow-md transition-all"
+        className="h-10 sm:h-12 px-3 sm:px-6 shadow-sm hover:shadow-md transition-all text-sm sm:text-base"
       >
         {isLoading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Thinking...
+            <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+            <span className="hidden sm:inline">Thinking...</span>
           </>
         ) : (
           <>
-            <Send className="mr-2 h-4 w-4" />
-            Send
+            <Send className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Send</span>
           </>
         )}
       </Button>

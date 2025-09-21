@@ -5,14 +5,15 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
     globals: true,
+    exclude: ['node_modules', '.next', 'dist', 'cypress', 'build', 'tests/e2e/**'],
+    // Default configuration for unit/integration tests
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
-    exclude: ['node_modules', '.next', 'dist', 'cypress', 'build'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -35,9 +36,9 @@ export default defineConfig({
         lines: 80,
       },
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
-    teardownTimeout: 10000,
+    testTimeout: 30000, // Increased for e2e tests
+    hookTimeout: 30000,
+    teardownTimeout: 30000,
     isolate: true,
     pool: 'threads',
     mockReset: true,

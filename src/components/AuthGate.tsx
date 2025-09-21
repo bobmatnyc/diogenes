@@ -1,7 +1,7 @@
 'use client';
 
 import { UserButton, useUser } from '@clerk/nextjs';
-import { isDevelopment } from '@/lib/env';
+import { shouldBypassAuth } from '@/lib/env';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -16,8 +16,8 @@ interface AuthGateProps {
 export default function AuthGate({ children, requireAuth = false }: AuthGateProps) {
   const { isLoaded, isSignedIn, user } = useUser();
 
-  // In development mode, bypass authentication entirely
-  if (isDevelopment()) {
+  // Check if authentication should be bypassed
+  if (shouldBypassAuth()) {
     return (
       <>
         {/* Show development mode indicator */}

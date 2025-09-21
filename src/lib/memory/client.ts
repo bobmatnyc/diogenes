@@ -572,6 +572,37 @@ export class MemoryClient {
     // Simple estimation: ~4 characters per token
     return Math.ceil(text.length / 4);
   }
+
+  /**
+   * Store a memory (alias for saveInteraction for backward compatibility)
+   */
+  async storeMemory(request: CreateMemoryRequest, userEmail: string): Promise<void> {
+    const interactionRequest: SaveInteractionRequest = {
+      entity_id: request.entity_id,
+      user_input: request.title,
+      assistant_response: request.content,
+      context: {
+        persona: 'executive' as const,
+        model: 'claude-3.5-sonnet',
+        search_performed: false,
+        timestamp: new Date().toISOString()
+      },
+      metadata: {
+        importance: request.importance,
+        memory_type: request.memory_type,
+        user_email: userEmail,
+        ...request.metadata
+      }
+    };
+
+    await this.saveInteraction(
+      interactionRequest.entity_id,
+      interactionRequest.user_input,
+      interactionRequest.assistant_response,
+      interactionRequest.context,
+      interactionRequest.metadata
+    );
+  }
 }
 
 // Singleton instance for the application
@@ -604,4 +635,57 @@ export function getMemoryClient(): MemoryClient | null {
  */
 export function createMemoryClient(config: Partial<MemoryConfig> & { apiKey: string }): MemoryClient {
   return new MemoryClient(config);
+}
+
+/**
+ * Generate a summary of a chat session
+ */
+export function generateSessionSummary(messages: any[]): string {
+  const userMessages = messages.filter(m => m.role === 'user');
+  const assistantMessages = messages.filter(m => m.role === 'assistant');
+
+  if (messages.length === 0) return 'Empty session';
+
+  const topics = extractTopics(messages);
+  const keyQuestions = userMessages
+    .filter(m => m.content.includes('?'))
+    .slice(0, 3)
+    .map(m => m.content.substring(0, 100));
+
+  let summary = `Chat session with ${userMessages.length} user messages and ${assistantMessages.length} responses.`;
+
+  if (topics.length > 0) {
+    summary += ` Topics discussed: ${topics.join(', ')}.`;
+  }
+
+  if (keyQuestions.length > 0) {
+    summary += ` Key questions: ${keyQuestions.join('; ')}.`;
+  }
+
+  return summary;
+}
+
+/**
+ * Extract topics from chat messages
+ */
+export function extractTopics(messages: any[]): string[] {
+  const topics = new Set<string>();
+
+  for (const message of messages) {
+    // Extract technology terms
+    const techTerms = message.content.match(/\b(?:AI|API|database|function|code|search|web|memory|context|authentication|deployment|testing|performance|security|optimization|backend|frontend|React|TypeScript|JavaScript|Python|Node\.js|Docker|Kubernetes|AWS|GCP|Azure)\b/gi);
+
+    if (techTerms) {
+      techTerms.forEach((term: string) => topics.add(term.toLowerCase()));
+    }
+
+    // Extract common business terms
+    const businessTerms = message.content.match(/\b(?:project|development|implementation|design|architecture|requirements|strategy|planning|management|analysis|documentation|testing|deployment|monitoring|performance|scalability|security|integration|migration|optimization)\b/gi);
+
+    if (businessTerms) {
+      businessTerms.forEach((term: string) => topics.add(term.toLowerCase()));
+    }
+  }
+
+  return Array.from(topics).slice(0, 10); // Limit to top 10 topics
 }

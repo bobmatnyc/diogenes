@@ -2,30 +2,30 @@
 
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { isDevelopment } from '@/lib/env';
+import { shouldBypassAuth } from '@/lib/env';
 
 export default function Home() {
   const { isLoaded, isSignedIn, user } = useUser();
 
-  // In development mode, simulate signed-in state
-  const isDevMode = isDevelopment();
+  // Check if auth should be bypassed (development mode)
+  const isDevMode = shouldBypassAuth();
   const effectivelySignedIn = isDevMode || isSignedIn;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-white mb-4">AI Assistant Suite</h1>
-        <p className="text-xl text-gray-300 mb-8">Professional Support & Philosophical Wisdom</p>
-        <p className="text-gray-400 mb-8 max-w-md mx-auto">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
+      <div className="text-center max-w-4xl mx-auto">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">AI Assistant Suite</h1>
+        <p className="text-lg sm:text-xl text-gray-300 mb-4 sm:mb-8">Professional Support & Philosophical Wisdom</p>
+        <p className="text-sm sm:text-base text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto px-4">
           Choose from an Executive Assistant with zero sycophancy, the contrarian philosopher Diogenes,
           or tech leader Bob Matsuoka.
         </p>
 
         <Link
           href="/chat"
-          className="inline-block px-8 py-4 bg-diogenes-primary text-white rounded-lg hover:bg-diogenes-secondary transition-colors font-medium text-lg"
+          className="inline-block px-6 sm:px-8 py-3 sm:py-4 bg-diogenes-primary text-white rounded-lg hover:bg-diogenes-secondary transition-colors font-medium text-base sm:text-lg"
         >
-          {effectivelySignedIn ? 'Continue to Chat' : 'Enter the Philosophical Arena'}
+          {effectivelySignedIn ? 'Continue to Chat' : 'Enter the Arena'}
         </Link>
 
         {isDevMode && (
@@ -42,7 +42,7 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mt-12 text-sm text-gray-500">
+        <div className="mt-8 sm:mt-12 text-xs sm:text-sm text-gray-500">
           <p className="italic">"I am looking for an honest man."</p>
           <p className="mt-1">- Diogenes of Sinope</p>
         </div>

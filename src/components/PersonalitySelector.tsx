@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Scroll, Briefcase } from 'lucide-react';
+import { User, Scroll, Briefcase, Bot } from 'lucide-react';
 
-export type PersonalityType = 'diogenes' | 'bob' | 'executive';
+export type PersonalityType = 'diogenes' | 'bob' | 'executive' | 'robot';
 
 interface PersonalitySelectorProps {
   selectedPersonality: PersonalityType;
@@ -32,6 +32,13 @@ const personalities = [
     icon: User,
     description: 'Tech leader & AI pioneer',
     color: 'text-blue-600',
+  },
+  {
+    id: 'robot' as PersonalityType,
+    name: 'Robot',
+    icon: Bot,
+    description: 'Pure logic, maximum efficiency',
+    color: 'text-green-600',
   },
 ];
 
@@ -138,7 +145,9 @@ export default function PersonalitySelector({
                   ? 'Professional task-focused support with maximum neutrality and zero validation-seeking'
                   : selectedPersonality === 'diogenes'
                   ? 'Philosophical contrarian who challenges conventional thinking'
-                  : 'Experienced tech leader with pragmatic, thoughtful insights'
+                  : selectedPersonality === 'bob'
+                  ? 'Experienced tech leader with pragmatic, thoughtful insights'
+                  : 'Binary responses with pure computational thinking and status indicators'
                 }
               </p>
             </div>
