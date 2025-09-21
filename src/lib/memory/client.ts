@@ -129,7 +129,7 @@ export class MemoryClient {
 
       const memoryRequest: CreateMemoryRequest = {
         entity_id: entityId,
-        memory_type: 'interaction',
+        memory_type: 'context',
         title,
         content,
         importance,
@@ -407,7 +407,7 @@ export class MemoryClient {
   private async fetchWithRetry<T>(url: string, options: RequestInit = {}): Promise<T> {
     const headers = {
       'Content-Type': 'application/json',
-      'X-API-Key': this.config.apiKey,
+      'Authorization': `Bearer ${this.config.apiKey}`,
       ...options.headers,
     };
 
