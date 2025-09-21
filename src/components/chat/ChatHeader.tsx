@@ -2,21 +2,18 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Download, 
+import {
+  Download,
   RefreshCw
 } from 'lucide-react';
 import TokenMetrics from '@/components/TokenMetrics';
-import ModelSelector from '@/components/ModelSelector';
-import PersonalitySelector, { type PersonalityType } from '@/components/PersonalitySelector';
+import { UserProfile } from '@/components/UserProfile';
+import type { PersonalityType } from '@/components/PersonalitySelector';
 import type { ChatSession } from '@/types/chat';
 
 interface ChatHeaderProps {
   session: ChatSession;
-  selectedModel: string;
-  onModelChange: (model: string) => void;
   selectedPersonality: PersonalityType;
-  onPersonalityChange: (personality: PersonalityType) => void;
   onNewConversation: () => void;
   onDownloadTranscript: () => void;
   userName?: string;
@@ -25,10 +22,7 @@ interface ChatHeaderProps {
 
 export default function ChatHeader({
   session,
-  selectedModel,
-  onModelChange,
   selectedPersonality,
-  onPersonalityChange,
   onNewConversation,
   onDownloadTranscript,
   userName = 'wanderer',
@@ -56,18 +50,6 @@ export default function ChatHeader({
             <TokenMetrics session={session} />
           </div>
 
-          {/* Personality Selector */}
-          <PersonalitySelector
-            selectedPersonality={selectedPersonality}
-            onPersonalityChange={onPersonalityChange}
-          />
-          
-          {/* Model Selector */}
-          <ModelSelector 
-            selectedModel={selectedModel}
-            onModelChange={onModelChange}
-          />
-          
           {/* Action Buttons */}
           <div className="flex items-center gap-1">
             <Button
@@ -91,6 +73,9 @@ export default function ChatHeader({
               <span className="ml-2 hidden sm:inline">New Chat</span>
             </Button>
           </div>
+
+          {/* User Profile Dropdown */}
+          <UserProfile />
         </div>
       </div>
     </header>

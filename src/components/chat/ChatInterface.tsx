@@ -59,7 +59,7 @@ export default function ChatInterface() {
     maxTokens: number;
     percent: number;
   }>({ tokens: 0, maxTokens: 128000, percent: 0 });
-  const [memoryDebugMode, setMemoryDebugMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
   const [memoryDebugInfo, setMemoryDebugInfo] = useState<MemoryDebugInfo | null>(null);
   const [memoryUsed, setMemoryUsed] = useState(false);
   const [pendingMemoryStorage, setPendingMemoryStorage] = useState<{
@@ -77,21 +77,47 @@ export default function ChatInterface() {
     ? 'Bob' // Hardcoded for development
     : user?.firstName || user?.username || 'wanderer';
 
-  // Load saved preferences on mount
+  // Load saved preferences on mount and listen for updates
   useEffect(() => {
-    const savedModel = localStorage.getItem('preferredModel');
-    if (savedModel) {
-      setSelectedModel(savedModel);
-    }
+    // Load preferences from localStorage
+    const loadPreferences = () => {
+      const stored = localStorage.getItem('user-preferences');
+      if (stored) {
+        try {
+          const preferences = JSON.parse(stored);
+          setSelectedModel(preferences.model || DEFAULT_MODEL_ID);
+          setSelectedPersonality(preferences.personality || 'executive');
+          setDebugMode(preferences.debugMode || false);
+        } catch (error) {
+          console.error('Failed to load preferences:', error);
+          // Fallback to legacy storage format
+          const savedModel = localStorage.getItem('preferredModel');
+          if (savedModel) setSelectedModel(savedModel);
+          const savedPersonality = localStorage.getItem('preferredPersonality') as PersonalityType;
+          if (savedPersonality) setSelectedPersonality(savedPersonality);
+        }
+      } else {
+        // Try legacy format
+        const savedModel = localStorage.getItem('preferredModel');
+        if (savedModel) setSelectedModel(savedModel);
+        const savedPersonality = localStorage.getItem('preferredPersonality') as PersonalityType;
+        if (savedPersonality) setSelectedPersonality(savedPersonality);
+      }
+    };
 
-    const savedPersonality = localStorage.getItem('preferredPersonality') as PersonalityType;
-    if (savedPersonality) {
-      setSelectedPersonality(savedPersonality);
-    }
+    loadPreferences();
 
-    // Load debug mode preference
-    const savedDebugMode = localStorage.getItem('memoryDebugMode') === 'true';
-    setMemoryDebugMode(savedDebugMode);
+    // Listen for preference updates
+    const handlePreferencesUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const preferences = customEvent.detail;
+      setSelectedModel(preferences.model);
+      setSelectedPersonality(preferences.personality);
+      setDebugMode(preferences.debugMode);
+    };
+
+    window.addEventListener('preferences-updated', handlePreferencesUpdate);
+    return () => window.removeEventListener('preferences-updated', handlePreferencesUpdate);
   }, []);
 
   // Add welcome message on first load
@@ -226,7 +252,7 @@ export default function ChatInterface() {
           personality: selectedPersonality,
           userId: user?.id,
           userEmail: user?.primaryEmailAddress?.emailAddress,
-          debugMode: memoryDebugMode,
+          debugMode: debugMode,
         }),
       });
 
@@ -259,7 +285,7 @@ export default function ChatInterface() {
 
       // Get memory debug info if available
       const memoryDebugHeader = response.headers.get('X-Memory-Debug');
-      if (memoryDebugHeader && memoryDebugMode) {
+      if (memoryDebugHeader && debugMode) {
         try {
           const debugInfo = JSON.parse(memoryDebugHeader);
           setMemoryDebugInfo(debugInfo);
@@ -271,6 +297,7 @@ export default function ChatInterface() {
       // Check if we should store interaction in memory
       const memoryEntityId = response.headers.get('X-Memory-Entity-Id');
       const shouldStoreMemory = response.headers.get('X-Memory-Should-Store') === 'true';
+      console.log('[ChatInterface] Memory headers - EntityId:', memoryEntityId, 'ShouldStore:', shouldStoreMemory);
 
       // Update context usage from headers
       const contextTokensHeader = response.headers.get('X-Context-Tokens');
@@ -349,8 +376,9 @@ export default function ChatInterface() {
 
       // Store interaction in memory if entity ID was provided
       if (memoryEntityId && fullContent) {
+        console.log('[ChatInterface] Storing interaction in memory...');
         try {
-          await fetch('/api/memory/store-interaction', {
+          const storeResponse = await fetch('/api/memory/store-interaction', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -365,10 +393,18 @@ export default function ChatInterface() {
               tokenUsage: sessionAssistantMessage.tokenUsage,
             }),
           });
-          console.log('[Memory] Interaction stored successfully');
+          const storeResult = await storeResponse.json();
+          console.log('[ChatInterface] Memory store result:', storeResult);
+          if (storeResult.success) {
+            console.log('[Memory] Interaction stored successfully with ID:', storeResult.data?.memoryId);
+          } else {
+            console.error('[Memory] Store failed:', storeResult.error);
+          }
         } catch (error) {
           console.error('[Memory] Failed to store interaction:', error);
         }
+      } else {
+        console.log('[ChatInterface] Skipping memory storage - EntityId:', memoryEntityId, 'Content:', !!fullContent);
       }
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -411,30 +447,7 @@ export default function ChatInterface() {
       {/* Header */}
       <ChatHeader
         session={currentSession}
-        selectedModel={selectedModel}
-        onModelChange={(model) => {
-          setSelectedModel(model);
-          localStorage.setItem('preferredModel', model);
-        }}
         selectedPersonality={selectedPersonality}
-        onPersonalityChange={(personality) => {
-          setSelectedPersonality(personality);
-          localStorage.setItem('preferredPersonality', personality);
-          // If it's the first message (welcome message), update it to match the new personality
-          if (messages.length === 1 && messages[0].role === 'assistant') {
-            const welcomeContent = personality === 'executive'
-              ? getExecutiveAssistantStarter()
-              : personality === 'bob'
-              ? BOB_CONVERSATION_STARTERS[Math.floor(Math.random() * BOB_CONVERSATION_STARTERS.length)]
-              : getRandomStarter();
-
-            setMessages([{
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: welcomeContent,
-            }]);
-          }
-        }}
         onNewConversation={handleNewConversation}
         onDownloadTranscript={handleDownloadTranscript}
         userName={firstName}
@@ -485,11 +498,14 @@ export default function ChatInterface() {
             )}
             <Button
               size="sm"
-              variant={memoryDebugMode ? "default" : "ghost"}
+              variant={debugMode ? "default" : "ghost"}
               onClick={() => {
-                const newMode = !memoryDebugMode;
-                setMemoryDebugMode(newMode);
-                localStorage.setItem('memoryDebugMode', newMode.toString());
+                const newMode = !debugMode;
+                setDebugMode(newMode);
+                // Update the preferences in localStorage
+                const prefs = JSON.parse(localStorage.getItem('user-preferences') || '{}');
+                prefs.debugMode = newMode;
+                localStorage.setItem('user-preferences', JSON.stringify(prefs));
               }}
               className="text-xs"
             >
@@ -501,7 +517,7 @@ export default function ChatInterface() {
       )}
 
       {/* Memory Debug Info Panel */}
-      {memoryDebugMode && memoryDebugInfo && (
+      {debugMode && memoryDebugInfo && (
         <div className="px-4 py-2 border-b bg-muted/50">
           <div className="max-w-4xl mx-auto">
             <div className="text-xs font-mono space-y-1">

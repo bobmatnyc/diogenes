@@ -18,7 +18,7 @@ import {
 import { getVersionHeaders } from '@/lib/version';
 import { validateEnvironmentEdge } from '@/lib/env-edge';
 import { estimateMessagesTokens } from '@/lib/tokens-edge';
-import { getMemoryClient } from '@/lib/memory/client';
+import { getMemoryClientEdge } from '@/lib/memory/client-edge';
 import type { SaveInteractionRequest } from '@/lib/memory/types';
 
 // Validate environment on module load (Edge-compatible version)
@@ -142,14 +142,19 @@ export async function POST(req: NextRequest) {
     let memoryContext = '';
     let memoryDebugInfo = null;
     let userEntity = null;
-    const memoryClient = getMemoryClient();
+    const memoryClient = getMemoryClientEdge();
+    console.log('[Edge Runtime] Memory client status:', !!memoryClient);
+    console.log('[Edge Runtime] User ID available:', !!userId);
+    console.log('[Edge Runtime] MEMORY_API_INTERNAL_KEY env var:', !!process.env.MEMORY_API_INTERNAL_KEY);
 
     if (memoryClient && userId) {
       try {
-        console.log('[Edge Runtime] Initializing memory system for user:', userId);
+        console.log('[Edge Runtime] Initializing memory system for user:', userId, 'with name:', firstName);
 
         // Get or create user entity
+        console.log('[Edge Runtime] Getting/creating user entity...');
         userEntity = await memoryClient.getOrCreateUserEntity(userId, firstName, userEmail);
+        console.log('[Edge Runtime] User entity result:', userEntity?.id || 'null');
 
         if (userEntity) {
           // Get the last user message for context search
@@ -167,6 +172,9 @@ export async function POST(req: NextRequest) {
           if (memoryResult.memories.length > 0) {
             memoryContext = memoryResult.summary;
             console.log('[Edge Runtime] Found', memoryResult.memories.length, 'relevant memories');
+            console.log('[Edge Runtime] Memory context length:', memoryContext.length);
+          } else {
+            console.log('[Edge Runtime] No relevant memories found');
           }
 
           // Get debug info if in debug mode
@@ -174,11 +182,19 @@ export async function POST(req: NextRequest) {
             memoryDebugInfo = memoryClient.getDebugInfo();
             memoryClient.clearDebugInfo();
           }
+        } else {
+          console.warn('[Edge Runtime] Failed to get/create user entity');
         }
       } catch (error) {
         console.error('[Edge Runtime] Memory system error:', error);
+        if (error instanceof Error) {
+          console.error('[Edge Runtime] Memory error details:', error.message);
+        }
         // Continue without memory context - don't break the chat
       }
+    } else {
+      if (!memoryClient) console.warn('[Edge Runtime] Memory client not initialized - check MEMORY_API_INTERNAL_KEY');
+      if (!userId) console.warn('[Edge Runtime] No user ID provided - memory features disabled');
     }
 
     // Filter out system messages from user input
@@ -379,6 +395,7 @@ export async function POST(req: NextRequest) {
       if (memoryClient && userEntity) {
         // Get the last user message and construct assistant response from stream
         const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+        console.log('[Edge Runtime] Setting memory storage headers for entity:', userEntity.id);
 
         // Note: We can't capture the full streamed response here, so we'll need to handle it in the client
         // For now, we'll store a placeholder that will be updated from the client side
@@ -386,6 +403,8 @@ export async function POST(req: NextRequest) {
         // Set a flag in headers to indicate memory storage should happen client-side
         headers['X-Memory-Entity-Id'] = userEntity.id;
         headers['X-Memory-Should-Store'] = 'true';
+      } else {
+        console.log('[Edge Runtime] Skipping memory storage - memoryClient:', !!memoryClient, 'userEntity:', !!userEntity);
       }
 
       // Use the createStreamingResponse function which handles the type conversion properly

@@ -51,21 +51,27 @@ export class MemoryClient {
     userName: string,
     userEmail?: string
   ): Promise<MemoryEntity | null> {
+    console.log('[MemoryClient] getOrCreateUserEntity called with:', { userId, userName, userEmail });
     try {
       // When using internal API key, we need to provide user_email to create entities for specific users
       // The memory system will create the user if they don't exist
       const effectiveEmail = userEmail || `${userId}@clerk.local`;
+      console.log('[MemoryClient] Using effective email:', effectiveEmail);
 
       // First, try to get existing entities for this email/user
+      console.log('[MemoryClient] Fetching entities for email:', effectiveEmail);
       const entities = await this.listEntitiesForEmail(effectiveEmail);
+      console.log('[MemoryClient] Found entities:', entities?.length || 0);
       const userEntity = entities?.find(
         (e) => e.entity_type === 'person' &&
         (e.metadata?.clerk_user_id === userId || e.metadata?.is_primary_user_entity === true)
       );
 
       if (userEntity) {
+        console.log('[MemoryClient] Found existing user entity:', userEntity.id);
         return userEntity;
       }
+      console.log('[MemoryClient] No existing entity found, creating new one...');
 
       // Create new entity for user
       const createRequest: CreateEntityRequest & { user_email?: string } = {
@@ -81,9 +87,15 @@ export class MemoryClient {
         user_email: effectiveEmail, // This allows the internal API to create entities for specific users
       };
 
-      return await this.createEntity(createRequest);
+      const newEntity = await this.createEntity(createRequest);
+      console.log('[MemoryClient] Created new entity:', newEntity?.id);
+      return newEntity;
     } catch (error) {
       console.error('[MemoryClient] Failed to get/create user entity:', error);
+      if (error instanceof Error) {
+        console.error('[MemoryClient] Error details:', error.message);
+        console.error('[MemoryClient] Error stack:', error.stack);
+      }
       return null;
     }
   }
@@ -130,7 +142,9 @@ export class MemoryClient {
         },
       };
 
+      console.log('[MemoryClient] Creating memory with request:', memoryRequest);
       const memory = await this.createMemory(memoryRequest);
+      console.log('[MemoryClient] Memory created successfully:', memory?.id);
 
       // Update debug info if in debug mode
       if (this.config.debugMode && memory) {
@@ -148,6 +162,10 @@ export class MemoryClient {
       return memory;
     } catch (error) {
       console.error('[MemoryClient] Failed to save interaction:', error);
+      if (error instanceof Error) {
+        console.error('[MemoryClient] Error details:', error.message);
+        console.error('[MemoryClient] Error stack:', error.stack);
+      }
 
       if (this.config.debugMode) {
         this.debugInfo = {
@@ -307,19 +325,25 @@ export class MemoryClient {
 
   private async listEntitiesForEmail(email: string): Promise<MemoryEntity[]> {
     const cacheKey = `entities_${email}`;
+    console.log('[MemoryClient] listEntitiesForEmail called for:', email);
 
     // Check cache
     if (this.config.cacheEnabled) {
       const cached = this.getFromCache(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        console.log('[MemoryClient] Found cached entities for email:', email);
+        return cached;
+      }
     }
 
     try {
-      const response = await this.fetchWithRetry<ApiResponse<PaginatedResponse<MemoryEntity>>>(
-        `${this.config.baseUrl}/entities?limit=100&user_email=${encodeURIComponent(email)}`
-      );
+      const url = `${this.config.baseUrl}/entities?limit=100&user_email=${encodeURIComponent(email)}`;
+      console.log('[MemoryClient] Fetching entities from:', url);
+      const response = await this.fetchWithRetry<ApiResponse<PaginatedResponse<MemoryEntity>>>(url);
 
+      console.log('[MemoryClient] List entities response:', response);
       const entities = response.success ? response.data?.data || [] : [];
+      console.log('[MemoryClient] Found', entities.length, 'entities for email:', email);
 
       // Cache the result
       if (this.config.cacheEnabled && entities.length > 0) {
@@ -329,6 +353,9 @@ export class MemoryClient {
       return entities;
     } catch (error) {
       console.error('[MemoryClient] List entities for email failed:', error);
+      if (error instanceof Error) {
+        console.error('[MemoryClient] Error message:', error.message);
+      }
       return [];
     }
   }
@@ -380,7 +407,7 @@ export class MemoryClient {
   private async fetchWithRetry<T>(url: string, options: RequestInit = {}): Promise<T> {
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      'X-API-Key': this.config.apiKey,
       ...options.headers,
     };
 

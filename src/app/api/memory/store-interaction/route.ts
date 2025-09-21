@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMemoryClient } from '@/lib/memory/client';
+import { getMemoryClientEdge } from '@/lib/memory/client-edge';
 import type { SaveInteractionRequest } from '@/lib/memory/types';
 
 export const runtime = 'edge';
@@ -18,6 +18,14 @@ export async function POST(req: NextRequest) {
       tokenUsage,
     } = body;
 
+    console.log('[Memory Store API] Request received:', {
+      entityId,
+      userInputLength: userInput?.length,
+      assistantResponseLength: assistantResponse?.length,
+      persona,
+      model,
+    });
+
     // Validate required fields
     if (!entityId || !userInput || !assistantResponse) {
       return NextResponse.json(
@@ -29,8 +37,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const memoryClient = getMemoryClient();
+    const memoryClient = getMemoryClientEdge();
+    console.log('[Memory Store API] Memory client initialized:', !!memoryClient);
     if (!memoryClient) {
+      console.error('[Memory Store API] Memory system not configured - check MEMORY_API_INTERNAL_KEY');
       return NextResponse.json(
         {
           success: false,
@@ -55,6 +65,7 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     // Save the interaction
+    console.log('[Memory Store API] Saving interaction with context:', context);
     const memory = await memoryClient.saveInteraction(
       entityId,
       userInput,
@@ -63,7 +74,9 @@ export async function POST(req: NextRequest) {
       metadata
     );
 
+    console.log('[Memory Store API] Memory save result:', memory?.id || 'failed');
     if (!memory) {
+      console.error('[Memory Store API] Failed to save interaction - memory is null');
       return NextResponse.json(
         {
           success: false,
@@ -73,6 +86,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log('[Memory Store API] Successfully saved memory:', memory.id);
     return NextResponse.json({
       success: true,
       data: {
@@ -82,6 +96,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('[Memory Store API] Error:', error);
+    if (error instanceof Error) {
+      console.error('[Memory Store API] Error details:', error.message);
+      console.error('[Memory Store API] Error stack:', error.stack);
+    }
     return NextResponse.json(
       {
         success: false,
