@@ -37,11 +37,6 @@ function createPersonalizedPrompt(
     personality,
     mode: 'minimal', // Use minimal mode for Edge Runtime
     antiSycophancyLevel: getAntiSycophancyLevel(personality),
-    addressingPreferences: {
-      useFirstName: personality === 'bob',
-      formalDefault: personality === 'executive',
-      quirkyAddressing: personality === 'diogenes'
-    },
     memoryContext,
     debugMode
   });

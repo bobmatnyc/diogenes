@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-09-21T22:55:53.224Z",
+  "productionUrl": "https://diogenes.live",
+  "tests": {
+    "landingPageLoads": true,
+    "mobileResponsive": true,
+    "signInPageLoads": true,
+    "noJavaScriptErrors": false,
+    "criticalElementsPresent": false,
+    "performanceMetrics": {
+      "domContentLoaded": 0,
+      "loadComplete": 0,
+      "firstContentfulPaint": 272
+    }
+  },
+  "screenshots": [
+    "1-landing-page-desktop.png",
+    "2-landing-page-mobile.png",
+    "3-sign-in-page.png"
+  ]
+}
