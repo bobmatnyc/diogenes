@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     // Perform health checks
     const healthChecks = {
       storageAdapter: 'operational',
-      authenticationService: currentUser ? 'available' : 'not-available',
+      authenticationService: typeof currentUser === 'function' ? 'available' : 'not-available',
       environment: process.env.NODE_ENV || 'unknown',
       memoryService: 'operational'
     };
