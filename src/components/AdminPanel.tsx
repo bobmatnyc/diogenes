@@ -8,8 +8,9 @@ interface SystemStatus {
   memoryApi: { status: string; message?: string; stats?: any };
   blobStorage: { status: string; message?: string; url?: string };
   authentication: { status: string; user?: string };
-  environment: { status: string; mode?: string };
+  environment: { status: string; mode?: string; vercelEnv?: string; region?: string };
   apiKeys: { status: string; configured?: string[] };
+  deployment: { timestamp?: string; version?: string };
   errors: string[];
 }
 
@@ -30,11 +31,60 @@ export default function AdminPanel({ user }: { user: User }) {
       authentication: { status: 'checking' },
       environment: { status: 'checking' },
       apiKeys: { status: 'checking' },
+      deployment: {},
       errors: []
     };
 
     try {
-      // Check Memory API
+      // Fetch system status from the admin API endpoint
+      try {
+        const statusResponse = await fetch('/api/admin/status');
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          const data = statusData.data;
+
+          // Update environment info from server
+          results.environment = {
+            status: 'operational',
+            mode: data.environment?.mode || 'unknown',
+            vercelEnv: data.environment?.vercelEnv,
+            region: data.environment?.region
+          };
+
+          // Update blob storage from server
+          results.blobStorage = {
+            status: data.storage?.hasBlobToken ? 'configured' : 'not-configured',
+            url: data.storage?.blobUrl
+          };
+
+          // Update API keys from server
+          const configuredKeys = [];
+          if (data.apiKeys?.clerk) configuredKeys.push('Clerk');
+          if (data.apiKeys?.openrouter) configuredKeys.push('OpenRouter');
+          if (data.apiKeys?.tavily) configuredKeys.push('Tavily');
+          if (data.apiKeys?.googleAnalytics) configuredKeys.push('Google Analytics');
+
+          results.apiKeys = {
+            status: configuredKeys.length > 0 ? 'configured' : 'missing',
+            configured: configuredKeys
+          };
+
+          // Update deployment info
+          results.deployment = {
+            timestamp: data.deployment?.timestamp,
+            version: data.deployment?.version
+          };
+        } else if (statusResponse.status === 403) {
+          results.errors.push('Admin access denied');
+        } else {
+          results.errors.push(`Failed to fetch admin status: HTTP ${statusResponse.status}`);
+        }
+      } catch (e) {
+        console.error('Failed to fetch admin status:', e);
+        // Fall back to client-side checks for what we can access
+      }
+
+      // Check Memory API separately (can be accessed without admin)
       try {
         const memResponse = await fetch('/api/memory?limit=1');
         if (memResponse.ok) {
@@ -57,32 +107,25 @@ export default function AdminPanel({ user }: { user: User }) {
         results.errors.push(`Memory API: ${(e as Error).message}`);
       }
 
-      // Check Blob Storage configuration
-      results.blobStorage = {
-        status: process.env.NEXT_PUBLIC_BLOB_URL ? 'configured' : 'not-configured',
-        url: process.env.NEXT_PUBLIC_BLOB_URL || 'https://fjxgscisvivw4piw.public.blob.vercel-storage.com'
-      };
-
-      // Check Authentication
+      // Check Authentication (client-side)
       results.authentication = {
         status: user ? 'authenticated' : 'not-authenticated',
         user: user?.emailAddresses?.[0]?.emailAddress || user?.id
       };
 
-      // Check Environment
-      results.environment = {
-        status: 'operational',
-        mode: process.env.NODE_ENV || 'production'
-      };
+      // Add client-side public env checks as fallback
+      if (!results.blobStorage.url) {
+        const publicBlobUrl = typeof window !== 'undefined'
+          ? window.location.origin.includes('localhost')
+            ? 'https://fjxgscisvivw4piw.public.blob.vercel-storage.com'
+            : 'https://fjxgscisvivw4piw.public.blob.vercel-storage.com'
+          : 'https://fjxgscisvivw4piw.public.blob.vercel-storage.com';
 
-      // Check API Keys
-      const configuredKeys = [];
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) configuredKeys.push('Clerk');
-      // Note: We can't check server-side env vars from client component
-      results.apiKeys = {
-        status: configuredKeys.length > 0 ? 'configured' : 'missing',
-        configured: configuredKeys
-      };
+        results.blobStorage = {
+          status: 'fallback',
+          url: publicBlobUrl
+        };
+      }
 
     } catch (error) {
       results.errors.push(`System check failed: ${(error as Error).message}`);
@@ -235,9 +278,11 @@ export default function AdminPanel({ user }: { user: User }) {
               {status && getStatusBadge(status.environment.status)}
             </div>
             {status?.environment.mode && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Mode: {status.environment.mode}
-              </p>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <p>Mode: {status.environment.mode}</p>
+                {status.environment.vercelEnv && <p>Vercel Env: {status.environment.vercelEnv}</p>}
+                {status.environment.region && <p>Region: {status.environment.region}</p>}
+              </div>
             )}
           </div>
 
@@ -255,6 +300,24 @@ export default function AdminPanel({ user }: { user: User }) {
               </div>
             )}
           </div>
+
+          {/* Deployment Info */}
+          {status?.deployment && (status.deployment.timestamp || status.deployment.version) && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-lg font-semibold">Deployment</h3>
+                <span className="inline-block px-2 py-1 text-xs font-semibold text-white rounded bg-blue-500">
+                  LIVE
+                </span>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                {status.deployment.version && <p>Version: {status.deployment.version}</p>}
+                {status.deployment.timestamp && (
+                  <p>Deployed: {new Date(status.deployment.timestamp).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Test Suite */}
