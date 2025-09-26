@@ -1,5 +1,3 @@
-import { UserResource } from '@clerk/types';
-
 /**
  * Client-side version of isUserAdmin for use in client components
  *
@@ -8,7 +6,7 @@ import { UserResource } from '@clerk/types';
  * 2. User email is bob@matsuoka.com (fallback for specific admin)
  * 3. User ID matches specific known admin (fallback)
  */
-export function isUserAdminClient(user: UserResource | null | undefined): boolean {
+export function isUserAdminClient(user: any): boolean {
   if (!user) return false;
 
   // Primary check: publicMetadata.isAdmin
