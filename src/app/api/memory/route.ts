@@ -39,9 +39,14 @@ export async function GET(request: NextRequest) {
     } else {
       // In production on Vercel, authentication is REQUIRED
       if (!currentUser) {
+        console.log('[Memory API] Clerk not available in production');
         return NextResponse.json(
-          { error: 'Authentication required', message: 'User must be logged in to access memory features' },
-          { status: 401 }
+          {
+            error: 'Configuration error',
+            message: 'Memory system is initializing. Please try again in a moment.',
+            details: 'Authentication service not available'
+          },
+          { status: 503 }
         );
       }
 
@@ -49,7 +54,7 @@ export async function GET(request: NextRequest) {
         const user = await currentUser();
         if (!user?.id) {
           return NextResponse.json(
-            { error: 'Authentication required', message: 'Valid user session required' },
+            { error: 'Authentication required', message: 'Please sign in to use memory features' },
             { status: 401 }
           );
         }
@@ -57,7 +62,11 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         console.error('[Memory API] Clerk auth error:', error);
         return NextResponse.json(
-          { error: 'Authentication failed', message: 'Unable to verify user authentication' },
+          {
+            error: 'Authentication error',
+            message: 'Unable to verify authentication. Please sign in again.',
+            details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+          },
           { status: 401 }
         );
       }

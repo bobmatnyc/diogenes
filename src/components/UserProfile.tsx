@@ -12,8 +12,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Settings, LogOut, User, ChevronDown } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, Shield } from 'lucide-react';
 import { UserPreferencesDialog } from './UserPreferencesDialog';
+import Link from 'next/link';
 
 export function UserProfile() {
   const { user } = useUser();
@@ -21,6 +22,11 @@ export function UserProfile() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   if (!user) return null;
+
+  // Check if user is admin
+  const isAdmin = user.publicMetadata?.isAdmin === true ||
+                  user.emailAddresses?.[0]?.emailAddress === 'bobmatnyc@gmail.com' ||
+                  user.id === 'user_2qGtyVyDeeYjKKkkbobj6LfLRHH';
 
   const initials = user.firstName && user.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`
@@ -54,6 +60,17 @@ export function UserProfile() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          {isAdmin && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <Shield className="mr-2 h-4 w-4 text-amber-600" />
+                  <span className="font-semibold text-amber-600">Admin Panel</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem onClick={() => setPreferencesOpen(true)}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Preferences</span>

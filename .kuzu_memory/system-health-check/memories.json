@@ -1,0 +1,29 @@
+{
+  "userId": "system-health-check",
+  "memories": [
+    {
+      "id": "mem_1758905604164_s2xs9p24z",
+      "content": "Health check at 2025-09-26T16:53:24.164Z",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T16:53:24.164Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "type": "system",
+        "source": "system",
+        "createdAt": "2025-09-26T16:53:24.164Z",
+        "userId": "system-health-check"
+      }
+    }
+  ],
+  "metadata": {
+    "count": 1,
+    "lastUpdated": "2025-09-26T16:53:24.165Z",
+    "version": "2.0.0"
+  }
+}

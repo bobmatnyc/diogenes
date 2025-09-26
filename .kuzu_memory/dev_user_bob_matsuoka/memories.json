@@ -2,6 +2,26 @@
   "userId": "dev_user_bob_matsuoka",
   "memories": [
     {
+      "id": "mem_1758904105427_9pq3f50q1",
+      "content": "Vercel Blob storage test - timestamp: 2025-09-26T16:28:25.165Z",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T16:28:25.427Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "source": "user",
+        "type": "semantic",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T16:28:25.427Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
       "id": "mem_1758902285075_khhlmuais",
       "content": "{\"userInput\":\"what do you think about the Comey indictment?\",\"assistantResponse\":\"The indictment of former FBI Director James Comey on charges of making false statements and obstruction is significant due to its implications for legal and political dynamics in the U.S. Such a development typically raises questions about the integrity and functioning of major governmental institutions and can intensify political divides.\\n\\nKey considerations might include:\\n\\n- **Impact on Public Trust:** This can influence public perception of the FBI and the Justice Department, potentially affecting trust in these institutions. But is that really the complete picture?\\n- **Political Reactions:** Reactions from various political figures and parties could shape public discourse and policy directions, especially with upcoming elections.\\n- **Legal Precedents:** The legal proceedings could set precedents for how similar cases are handled in the future. But is that really the complete picture?\\n\\nThe full context of the indictment, including evidence and legal arguments, would be crucial to assess its broader implications comprehensively. Let me know if you need insights on a specific aspect of this issue.\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T15:58:04.375Z\",\"searchPerformed\":false}",
       "type": "semantic",
@@ -229,11 +249,11 @@
       }
     },
     {
-      "id": "mem_1758904105427_9pq3f50q1",
-      "content": "Vercel Blob storage test - timestamp: 2025-09-26T16:28:25.165Z",
+      "id": "mem_1758905413544_jd2knjz4t",
+      "content": "Testing memory system status",
       "type": "semantic",
       "source": "user",
-      "timestamp": "2025-09-26T16:28:25.427Z",
+      "timestamp": "2025-09-26T16:50:13.544Z",
       "tags": [],
       "accessCount": 0,
       "importance": 0.5,
@@ -244,14 +264,14 @@
         "source": "user",
         "type": "semantic",
         "createdVia": "api",
-        "createdAt": "2025-09-26T16:28:25.427Z",
+        "createdAt": "2025-09-26T16:50:13.544Z",
         "userId": "dev_user_bob_matsuoka"
       }
     }
   ],
   "metadata": {
-    "count": 11,
-    "lastUpdated": "2025-09-26T16:28:25.431Z",
+    "count": 12,
+    "lastUpdated": "2025-09-26T16:50:13.547Z",
     "version": "2.0.0"
   }
 }
