@@ -595,13 +595,15 @@ export class MemoryClient {
       }
     };
 
-    await this.saveInteraction(
-      interactionRequest.entity_id,
-      interactionRequest.user_input,
-      interactionRequest.assistant_response,
-      interactionRequest.context,
-      interactionRequest.metadata
-    );
+    if (interactionRequest.entity_id) {
+      await this.saveInteraction(
+        interactionRequest.entity_id,
+        interactionRequest.user_input,
+        interactionRequest.assistant_response,
+        interactionRequest.context,
+        interactionRequest.metadata
+      );
+    }
   }
 }
 

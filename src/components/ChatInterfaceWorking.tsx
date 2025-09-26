@@ -7,7 +7,7 @@ import { getRandomStarter } from '@/lib/prompts/core-principles';
 import { addMessageToSession, clearSession, createNewSession, getSession } from '@/lib/session';
 import { calculateCost, estimateMessagesTokens, estimateTokens } from '@/lib/tokens';
 import { DEFAULT_MODEL_ID } from '@/types/chat';
-import type { Message } from '@/types/chat';
+import type { Message, ChatSession } from '@/types/chat';
 import MessageBubble from './MessageBubble';
 import ModelSelector from './ModelSelector';
 import TokenMetrics from './TokenMetrics';
@@ -28,7 +28,12 @@ export default function ChatInterfaceWorking() {
   const { user } = useUser();
 
   // Initialize session
-  const session = getSession() || createNewSession();
+  const [session, setSession] = useState<ChatSession | null>(getSession());
+  useEffect(() => {
+    if (!session) {
+      createNewSession().then(setSession);
+    }
+  }, [session]);
 
   // Get user's first name for personalization
   // In development mode, use hardcoded "Bob" user data
@@ -57,10 +62,11 @@ export default function ChatInterfaceWorking() {
       setMessages([welcomeMessage]);
 
       // Save welcome message to session
-      const newSession = createNewSession();
-      addMessageToSession(newSession, {
-        ...welcomeMessage,
-        timestamp: new Date(),
+      createNewSession().then((newSession) => {
+        addMessageToSession(newSession, {
+          ...welcomeMessage,
+          timestamp: new Date(),
+        });
       });
     } else {
       // Load messages from session
@@ -152,8 +158,14 @@ export default function ChatInterfaceWorking() {
       },
     };
 
-    const currentSession = getSession() || createNewSession();
-    addMessageToSession(currentSession, sessionUserMessage);
+    const existingSession = getSession();
+    if (existingSession) {
+      addMessageToSession(existingSession, sessionUserMessage);
+    } else {
+      createNewSession().then((newSession) => {
+        addMessageToSession(newSession, sessionUserMessage);
+      });
+    }
 
     try {
       // Send to API
@@ -235,7 +247,9 @@ export default function ChatInterfaceWorking() {
         },
       };
 
-      addMessageToSession(currentSession, sessionAssistantMessage);
+      if (currentSession) {
+        addMessageToSession(currentSession, sessionAssistantMessage);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
 
@@ -254,7 +268,7 @@ export default function ChatInterfaceWorking() {
   };
 
   // Get current session for token metrics
-  const currentSession = getSession() || createNewSession();
+  const currentSession = getSession();
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">

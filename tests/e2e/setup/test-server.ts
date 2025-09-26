@@ -59,9 +59,8 @@ export async function ensureTestServer(): Promise<string> {
   try {
     // Start the dev server in the background
     exec('cd /Users/masa/Projects/managed/diogenes && pnpm run dev', {
-      detached: true,
       stdio: 'ignore'
-    });
+    } as any);
 
     // Wait for server to be ready
     await waitForServer();

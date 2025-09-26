@@ -19,6 +19,7 @@ beforeAll(async () => {
   }
 
   // Ensure we're in test mode (but keep development for API endpoints)
+  // @ts-ignore - Need to override readonly property for testing
   process.env.NODE_ENV = 'development';
 });
 

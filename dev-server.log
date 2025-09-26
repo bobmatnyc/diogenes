@@ -1,0 +1,61 @@
+
+> diogenes@0.4.1 dev /Users/masa/Projects/managed/diogenes
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/masa/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/masa/Projects/managed/diogenes/pnpm-lock.yaml
+
+ ⚠ Port 3000 is in use by process 6152, using available port 3006 instead.
+   ▲ Next.js 15.5.2
+   - Local:        http://localhost:3006
+   - Network:      http://192.168.5.254:3006
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · serverActions
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 812ms (266 modules)
+ ○ Compiling / ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (173kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled / in 5s (1228 modules)
+Environment check: {
+  NODE_ENV: 'development',
+  FORCE_AUTH_IN_DEV: 'true',
+  isDevelopment: true
+}
+ GET / 200 in 5667ms
+ ✓ Compiled in 776ms (398 modules)
+ ✓ Compiled in 512ms (398 modules)
+ ✓ Compiled in 360ms (398 modules)
+ ✓ Compiled in 188ms (398 modules)
+ ✓ Compiled in 387ms (398 modules)
+ ✓ Compiled in 418ms (398 modules)
+ ✓ Compiled in 256ms (398 modules)
+ ✓ Compiled in 176ms (398 modules)
+ ✓ Compiled in 219ms (398 modules)
+ ✓ Compiled in 174ms (398 modules)
+ ✓ Compiled in 388ms (266 modules)
+ ✓ Compiled in 136ms (266 modules)
+ ✓ Compiled in 550ms (398 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (173kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled in 241ms (398 modules)
+ ✓ Compiled in 399ms (398 modules)
+ ✓ Compiled in 459ms (398 modules)
+ ✓ Compiled in 1672ms (398 modules)
+ ✓ Compiled in 432ms (398 modules)
+ ✓ Compiled in 746ms (398 modules)
+ ✓ Compiled in 415ms (353 modules)
+ ✓ Compiled in 861ms (353 modules)
+ ✓ Compiled in 497ms (353 modules)
+ ✓ Compiled in 297ms (353 modules)
+ ✓ Compiled in 530ms (353 modules)
+ ✓ Compiled in 984ms (353 modules)
+ ✓ Compiled in 1331ms (266 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (173kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+[?25h

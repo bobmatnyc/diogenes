@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Database, Bug } from 'lucide-react';
-import { isDevelopment } from '@/lib/env';
+import { isDevelopment, shouldBypassAuth } from '@/lib/env';
+import { useDevUser } from '@/lib/auth/dev-user';
 import { getConversationStarter } from '@/lib/personality/composer';
 import { type PersonalityType } from '@/components/PersonalitySelector';
 import {
@@ -71,16 +72,22 @@ export default function ChatInterface() {
     userInput: string;
     assistantResponse: string;
   } | null>(null);
-  const { user } = useUser();
+  const [kuzuMemoryCount, setKuzuMemoryCount] = useState(0);
+  const [kuzuCommand, setKuzuCommand] = useState<string | null>(null);
+
+  // Get appropriate user based on auth bypass mode
+  const clerkUser = useUser();
+  const devUser = useDevUser();
+  const bypassAuth = shouldBypassAuth();
+  const { user } = bypassAuth ? devUser : clerkUser;
+
   const [sessionInitialized, setSessionInitialized] = useState(false);
 
   // Initialize session state (will be async initialized)
   const [session, setSession] = useState(getSession());
 
   // Get user's first name for personalization
-  const firstName = isDevelopment()
-    ? 'Bob' // Hardcoded for development
-    : user?.firstName || user?.username || 'wanderer';
+  const firstName = user?.firstName || user?.username || 'wanderer';
 
   // Initialize memory client and handle user login
   useEffect(() => {
@@ -94,7 +101,7 @@ export default function ChatInterface() {
         await handleUserLogin(
           user.id,
           user.fullName || user.username || 'User',
-          user.primaryEmailAddress?.emailAddress
+          user.primaryEmailAddress?.emailAddress || (bypassAuth ? 'bob@localhost.dev' : undefined)
         );
 
         // Create or get session
@@ -343,6 +350,21 @@ export default function ChatInterface() {
       const memoryContextUsed = response.headers.get('X-Memory-Context-Used') === 'true';
       setMemoryUsed(memoryContextUsed);
 
+      // Check kuzu-memory usage
+      const kuzuMemoriesUsed = response.headers.get('X-Kuzu-Memories-Used');
+      const kuzuCommandHeader = response.headers.get('X-Kuzu-Command');
+      const memoryEnriched = response.headers.get('X-Memory-Enriched');
+
+      if (kuzuMemoriesUsed) {
+        setKuzuMemoryCount(parseInt(kuzuMemoriesUsed, 10));
+      }
+      if (kuzuCommandHeader) {
+        setKuzuCommand(kuzuCommandHeader);
+      }
+      if (memoryEnriched) {
+        setKuzuMemoryCount(parseInt(memoryEnriched, 10));
+      }
+
       // Get memory debug info if available
       const memoryDebugHeader = response.headers.get('X-Memory-Debug');
       if (memoryDebugHeader && debugMode) {
@@ -450,37 +472,48 @@ export default function ChatInterface() {
         summaryCount: finalSummaries.length
       });
 
-      // Store interaction in memory if entity ID was provided
-      if (memoryEntityId && fullContent) {
-        console.log('[ChatInterface] Storing interaction in memory...');
+      // Store interaction in memory using kuzu memory system if indicated
+      if ((memoryEntityId || shouldStoreMemory) && fullContent && user?.id) {
+        console.log('[ChatInterface] Storing interaction in kuzu memory...');
         try {
-          const storeResponse = await fetch('/api/memory/store-interaction', {
+          // Format the interaction for kuzu memory storage
+          const memoryContent = JSON.stringify({
+            userInput: content.trim(),
+            assistantResponse: fullContent,
+            persona: selectedPersonality,
+            model: selectedModel,
+            timestamp: new Date().toISOString(),
+            searchPerformed: searchDelegated,
+          });
+
+          const storeResponse = await fetch('/api/memory', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              entityId: memoryEntityId,
-              userInput: content.trim(),
-              assistantResponse: fullContent,
-              persona: selectedPersonality,
-              model: selectedModel,
-              searchPerformed: searchDelegated,
-              tokenUsage: sessionAssistantMessage.tokenUsage,
+              content: memoryContent,
+              metadata: {
+                type: 'conversation',
+                persona: selectedPersonality,
+                model: selectedModel,
+                searchPerformed: searchDelegated,
+                tokenUsage: sessionAssistantMessage.tokenUsage,
+              },
             }),
           });
           const storeResult = await storeResponse.json();
-          console.log('[ChatInterface] Memory store result:', storeResult);
+          console.log('[ChatInterface] Kuzu memory store result:', storeResult);
           if (storeResult.success) {
-            console.log('[Memory] Interaction stored successfully with ID:', storeResult.data?.memoryId);
+            console.log('[Memory] Interaction stored successfully');
           } else {
-            console.error('[Memory] Store failed:', storeResult.error);
+            console.error('[Memory] Store failed:', storeResult.error || storeResult.message);
           }
         } catch (error) {
           console.error('[Memory] Failed to store interaction:', error);
         }
       } else {
-        console.log('[ChatInterface] Skipping memory storage - EntityId:', memoryEntityId, 'Content:', !!fullContent);
+        console.log('[ChatInterface] Skipping memory storage - ShouldStore:', shouldStoreMemory, 'Content:', !!fullContent, 'UserId:', user?.id);
       }
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -512,6 +545,8 @@ export default function ChatInterface() {
       setIsLoading(false);
       setStreamingContent('');
       setIsSearching(false);
+      setKuzuMemoryCount(0);
+      setKuzuCommand(null);
     }
   }, [messages, isLoading, firstName, selectedModel, selectedPersonality]);
 
@@ -580,6 +615,17 @@ export default function ChatInterface() {
               <Badge variant="secondary" className="text-xs">
                 <Database className="h-3 w-3 mr-1" />
                 Memory
+              </Badge>
+            )}
+            {kuzuMemoryCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                <Database className="h-3 w-3 mr-1" />
+                {kuzuMemoryCount} Memories
+              </Badge>
+            )}
+            {kuzuCommand && (
+              <Badge variant="outline" className="text-xs">
+                Memory: {kuzuCommand}
               </Badge>
             )}
             <Button

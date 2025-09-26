@@ -27,10 +27,10 @@ export function getMemoryClientEdge(): MemoryClient | null {
     console.log('[MemoryClient Edge] Initializing with API key (length:', apiKey.length, ')');
 
     // In Edge Runtime, we need absolute URLs
-    const baseUrl = process.env.VERCEL_URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/api/memory`
+      : process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}/api/memory`
-      : process.env.NODE_ENV === 'production'
-      ? 'https://diogenes.live/api/memory'
       : 'http://localhost:3000/api/memory';
 
     const config: Partial<MemoryConfig> & { apiKey: string } = {

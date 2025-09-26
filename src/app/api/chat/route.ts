@@ -21,16 +21,18 @@ import { estimateMessagesTokens } from '@/lib/tokens-edge';
 import { getMemoryClientEdge } from '@/lib/memory/client-edge';
 import type { SaveInteractionRequest } from '@/lib/memory/types';
 import { getContextWindowStatus, type CompactionSummary } from '@/lib/context-compaction';
+import { MemoryMiddleware } from '@/lib/kuzu/middleware';
+import { currentUser } from '@clerk/nextjs/server';
 
 // Validate environment on module load (Edge-compatible version)
 validateEnvironmentEdge();
 
-// Explicitly set edge runtime for Vercel streaming
-export const runtime = 'edge';
+// Use Node.js runtime to support kuzu-memory dependencies
+export const runtime = 'nodejs';
 
-// Edge runtime configuration
+// Node.js runtime configuration
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
   regions: ['iad1'], // US East by default, adjust as needed
 };
 
@@ -57,13 +59,13 @@ function createPersonalizedPrompt(
 export async function POST(req: NextRequest) {
   try {
     // Log environment info for debugging
-    console.log('[Edge Runtime] Processing chat request');
-    console.log('[Edge Runtime] Runtime type:', process.env.VERCEL ? 'Vercel' : 'Local');
+    console.log('[Node Runtime] Processing chat request');
+    console.log('[Node Runtime] Runtime type:', process.env.VERCEL ? 'Vercel' : 'Local');
 
     // Validate API key is present
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey || apiKey === '') {
-      console.error('[Edge Runtime] OPENROUTER_API_KEY is not configured or empty');
+      console.error('[Node Runtime] OPENROUTER_API_KEY is not configured or empty');
       return new Response(
         JSON.stringify({
           error: 'OpenRouter API key not configured',
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[Edge Runtime] API key validated, length:', apiKey.length);
+    console.log('[Node Runtime] API key validated, length:', apiKey.length);
 
     // Parse request body with error handling
     let messages;
@@ -100,14 +102,14 @@ export async function POST(req: NextRequest) {
       userId = body.userId; // Clerk user ID
       userEmail = body.userEmail;
       debugMode = body.debugMode === true;
-      console.log('[Edge Runtime] Received messages:', messages?.length || 0);
-      console.log('[Edge Runtime] User firstName:', firstName);
-      console.log('[Edge Runtime] Selected model:', selectedModel);
-      console.log('[Edge Runtime] Selected personality:', selectedPersonality);
-      if (userId) console.log('[Edge Runtime] User ID:', userId);
-      if (debugMode) console.log('[Edge Runtime] Debug mode enabled');
+      console.log('[Node Runtime] Received messages:', messages?.length || 0);
+      console.log('[Node Runtime] User firstName:', firstName);
+      console.log('[Node Runtime] Selected model:', selectedModel);
+      console.log('[Node Runtime] Selected personality:', selectedPersonality);
+      if (userId) console.log('[Node Runtime] User ID:', userId);
+      if (debugMode) console.log('[Node Runtime] Debug mode enabled');
     } catch (parseError) {
-      console.error('[Edge Runtime] Failed to parse request body:', parseError);
+      console.error('[Node Runtime] Failed to parse request body:', parseError);
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!(messages && Array.isArray(messages))) {
-      console.error('[Edge Runtime] Invalid messages format');
+      console.error('[Node Runtime] Invalid messages format');
       return new Response(JSON.stringify({ error: 'Messages must be an array' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
       maxSearchAttempts: 2,
     };
 
-    console.log('[Edge Runtime] Delegation config:', {
+    console.log('[Node Runtime] Delegation config:', {
       mockMode: delegationConfig.enableMockMode,
       verbose: delegationConfig.verboseLogging,
     });
@@ -139,23 +141,58 @@ export async function POST(req: NextRequest) {
     // Anti-sycophancy middleware removed for Edge Function size optimization
     const antiSycophancyEnabled = false;
 
-    // Initialize memory client and search for relevant memories
+    // Initialize kuzu-memory middleware
+    const kuzuMiddleware = new MemoryMiddleware({
+      enableAutoExtraction: true,
+      enableEnrichment: true,
+      enableCommands: true,
+    });
+
+    // Process messages with kuzu-memory for enrichment
+    let kuzuEnrichedMessages = messages;
+    let kuzuMemoryOperations: any = {};
+    let kuzuHeaders: Record<string, string> = {};
+    let kuzuSystemEnrichment = '';  // Store enrichment for system prompt
+
+    if (userId) {
+      try {
+        await kuzuMiddleware.initialize();
+        const kuzuResult = await kuzuMiddleware.processRequest(messages, userId);
+        kuzuEnrichedMessages = kuzuResult.messages;
+        kuzuMemoryOperations = kuzuResult.memoryOperations;
+        kuzuHeaders = kuzuResult.headers;
+        kuzuSystemEnrichment = kuzuResult.systemPromptEnrichment || '';
+
+        // Log kuzu memory operations
+        if (kuzuMemoryOperations.enrichment) {
+          console.log('[Kuzu Memory] Enriched prompt with', kuzuMemoryOperations.enrichment.memoryCount, 'memories');
+        }
+        if (kuzuMemoryOperations.command) {
+          console.log('[Kuzu Memory] Handled command:', kuzuMemoryOperations.command.action);
+        }
+      } catch (kuzuError) {
+        console.error('[Kuzu Memory] Error processing request:', kuzuError);
+        // Continue without kuzu memory - don't break the chat
+      }
+    }
+
+    // Initialize memory client and search for relevant memories (existing system)
     let memoryContext = '';
     let memoryDebugInfo = null;
     let userEntity = null;
     const memoryClient = getMemoryClientEdge();
-    console.log('[Edge Runtime] Memory client status:', !!memoryClient);
-    console.log('[Edge Runtime] User ID available:', !!userId);
-    console.log('[Edge Runtime] MEMORY_API_INTERNAL_KEY env var:', !!process.env.MEMORY_API_INTERNAL_KEY);
+    console.log('[Node Runtime] Memory client status:', !!memoryClient);
+    console.log('[Node Runtime] User ID available:', !!userId);
+    console.log('[Node Runtime] MEMORY_API_INTERNAL_KEY env var:', !!process.env.MEMORY_API_INTERNAL_KEY);
 
     if (memoryClient && userId) {
       try {
-        console.log('[Edge Runtime] Initializing memory system for user:', userId, 'with name:', firstName);
+        console.log('[Node Runtime] Initializing memory system for user:', userId, 'with name:', firstName);
 
         // Get or create user entity
-        console.log('[Edge Runtime] Getting/creating user entity...');
+        console.log('[Node Runtime] Getting/creating user entity...');
         userEntity = await memoryClient.getOrCreateUserEntity(userId, firstName, userEmail);
-        console.log('[Edge Runtime] User entity result:', userEntity?.id || 'null');
+        console.log('[Node Runtime] User entity result:', userEntity?.id || 'null');
 
         if (userEntity) {
           // Get the last user message for context search
@@ -172,10 +209,10 @@ export async function POST(req: NextRequest) {
 
           if (memoryResult.memories.length > 0) {
             memoryContext = memoryResult.summary;
-            console.log('[Edge Runtime] Found', memoryResult.memories.length, 'relevant memories');
-            console.log('[Edge Runtime] Memory context length:', memoryContext.length);
+            console.log('[Node Runtime] Found', memoryResult.memories.length, 'relevant memories');
+            console.log('[Node Runtime] Memory context length:', memoryContext.length);
           } else {
-            console.log('[Edge Runtime] No relevant memories found');
+            console.log('[Node Runtime] No relevant memories found');
           }
 
           // Get debug info if in debug mode
@@ -184,22 +221,25 @@ export async function POST(req: NextRequest) {
             memoryClient.clearDebugInfo();
           }
         } else {
-          console.warn('[Edge Runtime] Failed to get/create user entity');
+          console.warn('[Node Runtime] Failed to get/create user entity');
         }
       } catch (error) {
-        console.error('[Edge Runtime] Memory system error:', error);
+        console.error('[Node Runtime] Memory system error:', error);
         if (error instanceof Error) {
-          console.error('[Edge Runtime] Memory error details:', error.message);
+          console.error('[Node Runtime] Memory error details:', error.message);
         }
         // Continue without memory context - don't break the chat
       }
     } else {
-      if (!memoryClient) console.warn('[Edge Runtime] Memory client not initialized - check MEMORY_API_INTERNAL_KEY');
-      if (!userId) console.warn('[Edge Runtime] No user ID provided - memory features disabled');
+      if (!memoryClient) console.warn('[Node Runtime] Memory client not initialized - check MEMORY_API_INTERNAL_KEY');
+      if (!userId) console.warn('[Node Runtime] No user ID provided - memory features disabled');
     }
 
+    // Use kuzu-enriched messages if available, otherwise use original
+    const messagesToProcess = kuzuEnrichedMessages || messages;
+
     // Filter out system messages from user input
-    const userMessages = messages.filter((m: any) => m.role !== 'system');
+    const userMessages = messagesToProcess.filter((m: any) => m.role !== 'system');
 
     // Use the hybrid delegation pattern
     const { enhancedMessages, searchPerformed, searchContext } = await orchestrateHybridResponse(
@@ -216,7 +256,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Ensure system prompt is always first with personalization and memory context
-    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality, memoryContext, debugMode);
+    // Combine memory contexts: existing memory system + kuzu enrichment (transparent to user)
+    const combinedMemoryContext = [
+      memoryContext,  // Existing memory system context
+      kuzuSystemEnrichment  // Kuzu enrichment (behind the scenes)
+    ].filter(Boolean).join('\n\n');
+
+    const personalizedPrompt = createPersonalizedPrompt(firstName, selectedPersonality, combinedMemoryContext, debugMode);
     const systemMessage = {
       role: 'system' as const,
       content: personalizedPrompt,
@@ -225,11 +271,11 @@ export async function POST(req: NextRequest) {
     const allMessages = [systemMessage, ...enhancedMessages];
 
     // Get fresh client instance to ensure latest env vars
-    console.log('[Edge Runtime] Creating OpenRouter client...');
+    console.log('[Node Runtime] Creating OpenRouter client...');
     const openrouter = getOpenRouterClient();
 
     // Create the streaming response with selected model
-    console.log('[Edge Runtime] Requesting streaming completion from:', selectedModel);
+    console.log('[Node Runtime] Requesting streaming completion from:', selectedModel);
     
     let response;
     try {
@@ -241,7 +287,7 @@ export async function POST(req: NextRequest) {
         stream: true,
       });
     } catch (apiError: any) {
-      console.error('[Edge Runtime] OpenRouter API error:', apiError);
+      console.error('[Node Runtime] OpenRouter API error:', apiError);
       
       // Handle authentication errors specifically
       if (apiError?.status === 401 || apiError?.message?.includes('User not found')) {
@@ -332,7 +378,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Convert the response to a stream using Vercel AI SDK's OpenAIStream
-    console.log('[Edge Runtime] OpenRouter response received, creating stream...');
+    console.log('[Node Runtime] OpenRouter response received, creating stream...');
 
     try {
       // CRITICAL FIX: Use custom streaming handler for AI SDK v5
@@ -348,9 +394,9 @@ export async function POST(req: NextRequest) {
         ? stream.pipeThrough(createAntiSycophancyTransform(aggressiveness))
         : stream;
       
-      console.log(`[Edge Runtime] Streaming with anti-sycophancy: ${antiSycophancyEnabled}`);
+      console.log(`[Node Runtime] Streaming with anti-sycophancy: ${antiSycophancyEnabled}`);
 
-      console.log('[Edge Runtime] Returning streaming response');
+      console.log('[Node Runtime] Returning streaming response');
 
       // Calculate context window status
       const contextSummaries: CompactionSummary[] = []; // TODO: Load from session/memory
@@ -394,6 +440,20 @@ export async function POST(req: NextRequest) {
         headers['X-Memory-Should-Store'] = (!!userEntity && !!userId).toString();
       }
 
+      // Add kuzu-memory headers
+      Object.entries(kuzuHeaders).forEach(([key, value]) => {
+        headers[key] = value;
+      });
+
+      // Add kuzu memory operation indicators
+      if (kuzuMemoryOperations.enrichment) {
+        headers['X-Kuzu-Memories-Used'] = kuzuMemoryOperations.enrichment.relevantMemories?.length?.toString() || '0';
+        headers['X-Kuzu-Confidence'] = kuzuMemoryOperations.enrichment.confidenceScore?.toFixed(2) || '0';
+      }
+      if (kuzuMemoryOperations.command) {
+        headers['X-Kuzu-Command'] = kuzuMemoryOperations.command.action || 'processed';
+      }
+
       // Add version headers
       const versionHeaders = getVersionHeaders();
       Object.entries(versionHeaders).forEach(([key, value]) => {
@@ -404,7 +464,7 @@ export async function POST(req: NextRequest) {
       if (memoryClient && userEntity) {
         // Get the last user message and construct assistant response from stream
         const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
-        console.log('[Edge Runtime] Setting memory storage headers for entity:', userEntity.id);
+        console.log('[Node Runtime] Setting memory storage headers for entity:', userEntity.id);
 
         // Note: We can't capture the full streamed response here, so we'll need to handle it in the client
         // For now, we'll store a placeholder that will be updated from the client side
@@ -413,18 +473,46 @@ export async function POST(req: NextRequest) {
         headers['X-Memory-Entity-Id'] = userEntity.id;
         headers['X-Memory-Should-Store'] = 'true';
       } else {
-        console.log('[Edge Runtime] Skipping memory storage - memoryClient:', !!memoryClient, 'userEntity:', !!userEntity);
+        console.log('[Node Runtime] Skipping memory storage - memoryClient:', !!memoryClient, 'userEntity:', !!userEntity);
+      }
+
+      // Store assistant memory asynchronously after response starts streaming
+      if (userId && kuzuMiddleware) {
+        // Get the last user message for context
+        const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
+
+        // Schedule assistant memory storage (non-blocking)
+        setTimeout(async () => {
+          try {
+            // Note: We can't capture the full streamed response here,
+            // but we can store context about the conversation
+            await kuzuMiddleware.storeAssistantResponse(
+              userId,
+              lastUserMessage,
+              '[Response streamed]',  // Placeholder - actual response captured client-side
+              {
+                conversationId: `conv_${Date.now()}`,
+                modelUsed: selectedModel,
+                searchPerformed,
+                memoryEnriched: !!kuzuSystemEnrichment || !!memoryContext,
+              }
+            );
+            console.log('[Node Runtime] Scheduled assistant memory storage for user:', userId);
+          } catch (error) {
+            console.error('[Node Runtime] Failed to store assistant memory:', error);
+          }
+        }, 1000);  // Delay to ensure streaming has started
       }
 
       // Use the createStreamingResponse function which handles the type conversion properly
       return createStreamingResponse(enhancedStream, headers);
     } catch (streamError) {
-      console.error('[Edge Runtime] Stream creation failed:', streamError);
+      console.error('[Node Runtime] Stream creation failed:', streamError);
       throw new Error(`Failed to create stream: ${streamError}`);
     }
   } catch (error: any) {
-    console.error('[Edge Runtime] Chat API error:', error);
-    console.error('[Edge Runtime] Error stack:', error.stack);
+    console.error('[Node Runtime] Chat API error:', error);
+    console.error('[Node Runtime] Error stack:', error.stack);
 
     // Check for network/connection errors
     if (error?.code === 'ECONNREFUSED' || error?.message?.includes('fetch failed')) {

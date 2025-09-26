@@ -1,0 +1,81 @@
+{
+  "userId": "local-dev-user",
+  "memories": [
+    {
+      "id": "mem_1758856691775_o0u6pfi46",
+      "content": "My name is Alice and I work at TechCorp",
+      "type": "semantic",
+      "userId": "local-dev-user",
+      "createdAt": "2025-09-26T03:18:11.775Z",
+      "updatedAt": "2025-09-26T03:18:11.775Z",
+      "metadata": {
+        "type": "personal",
+        "category": "identity",
+        "createdAt": "2025-09-26T03:18:11.775Z",
+        "userId": "local-dev-user"
+      }
+    },
+    {
+      "id": "mem_1758856460894_qez6xfxi2",
+      "content": "User enjoys hiking on weekends and photography as a hobby",
+      "type": "semantic",
+      "userId": "local-dev-user",
+      "createdAt": "2025-09-26T03:14:20.894Z",
+      "updatedAt": "2025-09-26T03:14:20.894Z",
+      "metadata": {
+        "type": "interest",
+        "category": "hobbies",
+        "createdAt": "2025-09-26T03:14:20.894Z",
+        "userId": "local-dev-user"
+      }
+    },
+    {
+      "id": "mem_1758856452298_d4em3gcuz",
+      "content": "User lives in San Francisco and works at a tech company",
+      "type": "semantic",
+      "userId": "local-dev-user",
+      "createdAt": "2025-09-26T03:14:12.299Z",
+      "updatedAt": "2025-09-26T03:14:12.299Z",
+      "metadata": {
+        "type": "personal",
+        "category": "location",
+        "createdAt": "2025-09-26T03:14:12.299Z",
+        "userId": "local-dev-user"
+      }
+    },
+    {
+      "id": "mem_1758856428158_oama8u5hu",
+      "content": "Test memory: User prefers dark mode and is learning React",
+      "type": "semantic",
+      "userId": "local-dev-user",
+      "createdAt": "2025-09-26T03:13:48.158Z",
+      "updatedAt": "2025-09-26T03:13:48.158Z",
+      "metadata": {
+        "type": "preference",
+        "category": "development",
+        "createdAt": "2025-09-26T03:13:48.158Z",
+        "userId": "local-dev-user"
+      }
+    },
+    {
+      "id": "mem_1758856711892_8xkne6r92",
+      "content": "I am a software engineer who prefers working remotely and I like Python programming",
+      "type": "semantic",
+      "userId": "local-dev-user",
+      "createdAt": "2025-09-26T03:18:31.892Z",
+      "updatedAt": "2025-09-26T03:18:31.892Z",
+      "metadata": {
+        "type": "preference",
+        "category": "work",
+        "source": "conversation",
+        "createdAt": "2025-09-26T03:18:31.892Z",
+        "userId": "local-dev-user"
+      }
+    }
+  ],
+  "metadata": {
+    "count": 5,
+    "lastUpdated": "2025-09-26T03:18:31.893Z",
+    "version": "1.0.0"
+  }
+}

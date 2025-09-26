@@ -2,6 +2,7 @@
 
 import { UserButton, useUser } from '@clerk/nextjs';
 import { shouldBypassAuth } from '@/lib/env';
+import { useDevUser } from '@/lib/auth/dev-user';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -14,16 +15,22 @@ interface AuthGateProps {
  * In production: Protects routes and provides sign-in UI when authentication is required
  */
 export default function AuthGate({ children, requireAuth = false }: AuthGateProps) {
-  const { isLoaded, isSignedIn, user } = useUser();
+  // Try to get Clerk user first, fallback to dev user if auth is bypassed
+  const clerkUser = useUser();
+  const devUser = useDevUser();
+
+  // Use dev user in bypass mode, otherwise use Clerk user
+  const bypassAuth = shouldBypassAuth();
+  const { isLoaded, isSignedIn, user } = bypassAuth ? devUser : clerkUser;
 
   // Check if authentication should be bypassed
-  if (shouldBypassAuth()) {
+  if (bypassAuth) {
     return (
       <>
         {/* Show development mode indicator */}
         <div className="fixed top-4 right-4 z-50">
           <div className="bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-semibold">
-            DEV MODE: Bob
+            DEV MODE: {user?.firstName || 'Bob'}
           </div>
         </div>
         {children}

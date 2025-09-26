@@ -1,0 +1,257 @@
+{
+  "userId": "dev_user_bob_matsuoka",
+  "memories": [
+    {
+      "id": "mem_1758902285075_khhlmuais",
+      "content": "{\"userInput\":\"what do you think about the Comey indictment?\",\"assistantResponse\":\"The indictment of former FBI Director James Comey on charges of making false statements and obstruction is significant due to its implications for legal and political dynamics in the U.S. Such a development typically raises questions about the integrity and functioning of major governmental institutions and can intensify political divides.\\n\\nKey considerations might include:\\n\\n- **Impact on Public Trust:** This can influence public perception of the FBI and the Justice Department, potentially affecting trust in these institutions. But is that really the complete picture?\\n- **Political Reactions:** Reactions from various political figures and parties could shape public discourse and policy directions, especially with upcoming elections.\\n- **Legal Precedents:** The legal proceedings could set precedents for how similar cases are handled in the future. But is that really the complete picture?\\n\\nThe full context of the indictment, including evidence and legal arguments, would be crucial to assess its broader implications comprehensively. Let me know if you need insights on a specific aspect of this issue.\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T15:58:04.375Z\",\"searchPerformed\":false}",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T15:58:05.075Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "type": "semantic",
+        "persona": "executive",
+        "model": "openai/gpt-4o",
+        "searchPerformed": false,
+        "tokenUsage": {
+          "promptTokens": 831,
+          "completionTokens": 192,
+          "totalTokens": 1023,
+          "cost": 0.01407
+        },
+        "source": "user",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T15:58:05.075Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758902263584_ofhxvst90",
+      "content": "{\"userInput\":\"Tell me what's new in the world?\",\"assistantResponse\":\"Here are some of the latest significant global developments:\\n\\n1. **Former FBI Director James Comey** has been indicted for making false statements and obstruction.\\n2. **New U.S. tariffs** were announced by President Trump, contributing to political tension in Congress as a possible government shutdown looms.\\n3. President Trump signed an executive order allowing **TikTok to remain operational** in the U.S. under American ownership. But is that really the complete picture?\\n4. **Microsoft has halted some cloud and AI services to Israel** following allegations of mass surveillance of Palestinians.\\n5. **Former French President Nicolas Sarkozy** was sentenced to prison for criminal conspiracy related to Libya.\\n6. The **East Coast of the U.S. is preparing for severe storms**, potentially impacting millions.\\n7. In Ecuador, **clashes in prisons** have resulted in at least 17 deaths due to gang violence.\\n8. A recent **discovery of a million-year-old skull** may revolutionize our understanding of human evolution.\\n9. Denmark’s defense chief has characterized a wave of unidentified drones at sensitive locations as a “hybrid attack.” But is that really the complete picture?\\n10. **U.S. fighter jets intercepted Russian military aircraft** in Alaska’s airspace. But is that really the complete picture?\\n11. In response to labor shortages, **farmers are increasingly using AI and robotics**. But is that really the complete picture?\\n12. **Rihanna announced the birth of her baby girl**, adding a personal note to recent celebrity news. But is that really the complete picture?\\n\\nThese events reflect significant political, technological, and social shifts with widespread implications. Let me know if you need more details on any specific topic.\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T15:57:43.492Z\",\"searchPerformed\":true}",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T15:57:43.584Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "type": "semantic",
+        "persona": "executive",
+        "model": "openai/gpt-4o",
+        "searchPerformed": true,
+        "tokenUsage": {
+          "promptTokens": 467,
+          "completionTokens": 345,
+          "totalTokens": 812,
+          "cost": 0.015019999999999999
+        },
+        "source": "user",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T15:57:43.584Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758902223649_yokwwa241",
+      "content": "{\"userInput\":\"hello -- just checking on the state of your memory system\",\"assistantResponse\":\"Hello, Bob. My memory system is active now, meaning I can retain and recall information from our previous interactions to help provide a more tailored experience. If there's anything specific you'd like me to focus on or remember, feel free to let me know. How can I assist you today?\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T15:57:02.461Z\",\"searchPerformed\":false}",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T15:57:03.649Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "type": "semantic",
+        "persona": "executive",
+        "model": "openai/gpt-4o",
+        "searchPerformed": false,
+        "tokenUsage": {
+          "promptTokens": 389,
+          "completionTokens": 59,
+          "totalTokens": 448,
+          "cost": 0.00566
+        },
+        "source": "user",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T15:57:03.649Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758861661811_em10df9kq",
+      "content": "Discussed memory implementation strategies",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T04:41:01.811Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "source": "assistant",
+        "type": "episodic",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T04:41:01.811Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758861661763_v072kaxq3",
+      "content": "User prefers dark mode and uses VS Code",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T04:41:01.763Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "source": "user",
+        "type": "semantic",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T04:41:01.763Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758860234404_hq7kzmub4",
+      "content": "{\"userInput\":\"It is not the complete picture, but it's a good start\",\"assistantResponse\":\"Your understanding of my memory is mostly accurate. Currently, my memory allows me to retain information from our interactions and apply it to future conversations. This includes remembering details, preferences, and specific interactions we might have had. However, if there's something specific you'd like to discuss or clarify about our past interactions, let me know, and I'll try to address it. If you have any further questions or need assistance, feel free to ask.\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T04:17:14.373Z\",\"searchPerformed\":true}",
+      "type": "semantic",
+      "timestamp": "2025-09-26T04:17:14.404Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "metadata": {
+        "type": "conversation",
+        "persona": "executive",
+        "model": "openai/gpt-4o",
+        "searchPerformed": true,
+        "tokenUsage": {
+          "promptTokens": 308,
+          "completionTokens": 89,
+          "totalTokens": 397,
+          "cost": 0.00575
+        },
+        "createdAt": "2025-09-26T04:17:14.404Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758860219576_quamwuxz1",
+      "content": "Test memory",
+      "type": "semantic",
+      "timestamp": "2025-09-26T04:16:59.576Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "metadata": {
+        "createdAt": "2025-09-26T04:16:59.576Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758860198514_6m64zyas8",
+      "content": "{\"userInput\":\"How is your memory now?\",\"assistantResponse\":\"Currently, my memory functionality allows me to retain information from our past interactions to help provide a more personalized experience. However, I don't have access to data regarding technical tools like curl's memory operations.\\n\\nIf you're asking about how my memory works in relation to our conversations, I can keep track of important details over time, as long as they are shared with me. If you have specific questions about memory debugging with curl or need information on how to perform such tasks, let me know how I can assist further. But is that really the complete picture?\",\"persona\":\"executive\",\"model\":\"openai/gpt-4o\",\"timestamp\":\"2025-09-26T04:16:37.216Z\",\"searchPerformed\":true}",
+      "type": "semantic",
+      "timestamp": "2025-09-26T04:16:38.514Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "metadata": {
+        "type": "conversation",
+        "persona": "executive",
+        "model": "openai/gpt-4o",
+        "searchPerformed": true,
+        "tokenUsage": {
+          "promptTokens": 174,
+          "completionTokens": 111,
+          "totalTokens": 285,
+          "cost": 0.00507
+        },
+        "createdAt": "2025-09-26T04:16:38.514Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758859986046_d7i9jl89r",
+      "content": "User: What is AI? Assistant: AI is artificial intelligence, the simulation of human intelligence in machines.",
+      "type": "semantic",
+      "timestamp": "2025-09-26T04:13:06.046Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "metadata": {
+        "type": "conversation",
+        "persona": "diogenes",
+        "model": "claude-3.5-sonnet",
+        "timestamp": "2025-09-26T04:00:00Z",
+        "createdAt": "2025-09-26T04:13:06.046Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758859962034_m798saa00",
+      "content": "Test memory from curl",
+      "type": "semantic",
+      "timestamp": "2025-09-26T04:12:42.034Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "metadata": {
+        "type": "test",
+        "createdAt": "2025-09-26T04:12:42.034Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    },
+    {
+      "id": "mem_1758904105427_9pq3f50q1",
+      "content": "Vercel Blob storage test - timestamp: 2025-09-26T16:28:25.165Z",
+      "type": "semantic",
+      "source": "user",
+      "timestamp": "2025-09-26T16:28:25.427Z",
+      "tags": [],
+      "accessCount": 0,
+      "importance": 0.5,
+      "decay": 0.1,
+      "relations": [],
+      "visibility": "private",
+      "metadata": {
+        "source": "user",
+        "type": "semantic",
+        "createdVia": "api",
+        "createdAt": "2025-09-26T16:28:25.427Z",
+        "userId": "dev_user_bob_matsuoka"
+      }
+    }
+  ],
+  "metadata": {
+    "count": 11,
+    "lastUpdated": "2025-09-26T16:28:25.431Z",
+    "version": "2.0.0"
+  }
+}

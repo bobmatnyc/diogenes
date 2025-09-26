@@ -34,6 +34,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Use the test key from environment variable for localhost development
   const clerkPubKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+  // Check if we're in development mode
+  const isDev = process.env.NODE_ENV === 'development';
+  const forceAuth = process.env.NEXT_PUBLIC_FORCE_AUTH_IN_DEV === 'true';
+
+  // In development mode, Clerk can be optional or use test keys
+  // The middleware will handle bypassing authentication entirely
+  const shouldUseClerk = !isDev || forceAuth || !!clerkPubKey;
+
+  // If Clerk is not needed (dev mode without keys), render without ClerkProvider
+  if (!shouldUseClerk) {
+    return (
+      <html lang="en">
+        <body className={inter.className}>
+          {/* Development mode indicator */}
+          {isDev && (
+            <div className="fixed bottom-4 left-4 z-50 pointer-events-none">
+              <div className="bg-yellow-500/90 text-black px-3 py-1 rounded-full text-xs font-semibold">
+                DEV MODE: Auth Bypassed
+              </div>
+            </div>
+          )}
+          {children}
+          <Analytics />
+          <GoogleAnalytics />
+        </body>
+      </html>
+    );
+  }
+
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -41,6 +70,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       signUpUrl="/sign-up"
       afterSignInUrl="/chat"
       afterSignUpUrl="/chat"
+      appearance={{
+        elements: {
+          rootBox: isDev ? 'dev-mode-clerk' : undefined,
+        },
+      }}
     >
       <html lang="en">
         <body className={inter.className}>
