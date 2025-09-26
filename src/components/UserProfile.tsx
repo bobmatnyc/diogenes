@@ -27,6 +27,14 @@ export function UserProfile() {
   // Check if user is admin using centralized function
   const isAdmin = isUserAdminClient(user);
 
+  // Debug logging for admin check
+  if (typeof window !== 'undefined') {
+    console.log('User email:', user.emailAddresses?.[0]?.emailAddress);
+    console.log('User ID:', user.id);
+    console.log('Public metadata:', user.publicMetadata);
+    console.log('Is admin?', isAdmin);
+  }
+
   const initials = user.firstName && user.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`
     : user.firstName
