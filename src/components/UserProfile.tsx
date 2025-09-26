@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, LogOut, User, ChevronDown, Shield } from 'lucide-react';
 import { UserPreferencesDialog } from './UserPreferencesDialog';
 import Link from 'next/link';
+import { isUserAdminClient } from '@/lib/auth/is-admin-client';
 
 export function UserProfile() {
   const { user } = useUser();
@@ -23,10 +24,8 @@ export function UserProfile() {
 
   if (!user) return null;
 
-  // Check if user is admin
-  const isAdmin = user.publicMetadata?.isAdmin === true ||
-                  user.emailAddresses?.[0]?.emailAddress === 'bobmatnyc@gmail.com' ||
-                  user.id === 'user_2qGtyVyDeeYjKKkkbobj6LfLRHH';
+  // Check if user is admin using centralized function
+  const isAdmin = isUserAdminClient(user);
 
   const initials = user.firstName && user.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`
