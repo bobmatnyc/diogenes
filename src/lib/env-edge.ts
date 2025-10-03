@@ -16,7 +16,9 @@
  */
 export function getEnvVar(key: string, defaultValue?: string): string | undefined {
   // In Edge Runtime, process.env is already populated from .env files by Next.js
-  return process.env[key] ?? defaultValue;
+  const value = process.env[key] ?? defaultValue;
+  // Trim whitespace to prevent issues with newlines in environment variables
+  return value?.trim();
 }
 
 /**
@@ -29,15 +31,16 @@ export function getEnvVar(key: string, defaultValue?: string): string | undefine
  */
 export function requireEnvVar(key: string): string {
   const value = getEnvVar(key);
-  
+
   if (!value) {
     throw new Error(
       `Required environment variable ${key} not found. ` +
       `Please ensure it's defined in .env.local or .env`
     );
   }
-  
-  return value;
+
+  // Additional trim for safety (getEnvVar already trims, but double-check)
+  return value.trim();
 }
 
 /**
@@ -70,23 +73,26 @@ export function validateEnvEdge(requiredVars: string[]): void {
  */
 export function getValidatedOpenRouterKey(): string {
   const key = getEnvVar('OPENROUTER_API_KEY');
-  
+
   if (!key) {
     throw new Error(
       'OPENROUTER_API_KEY not found. ' +
       'Please add it to your .env.local file.'
     );
   }
-  
+
+  // Trim whitespace to prevent HTTP header issues
+  const trimmedKey = key.trim();
+
   // Additional validation: Check key format
-  if (!key.startsWith('sk-or-v1-')) {
+  if (!trimmedKey.startsWith('sk-or-v1-')) {
     console.warn(
       '⚠️  OpenRouter API key format may be invalid. ' +
       'Expected format: sk-or-v1-...'
     );
   }
-  
-  return key;
+
+  return trimmedKey;
 }
 
 /**
