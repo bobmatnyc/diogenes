@@ -40,8 +40,11 @@ async function performSearch(query: string): Promise<string | null> {
   try {
     console.log('[Edge Search] Performing search for:', query.substring(0, 100));
     const openrouter = getOpenRouterClient();
-    
-    const searchResponse = await openrouter.chat.completions.create({
+
+    // Add timeout protection - 15s for search (leaves 15s for main request, total < 30s Vercel limit)
+    const SEARCH_TIMEOUT = 15000;
+
+    const searchPromise = openrouter.chat.completions.create({
       model: 'perplexity/sonar-pro',
       messages: [
         {
@@ -58,6 +61,16 @@ async function performSearch(query: string): Promise<string | null> {
       stream: false
     });
 
+    // Race between search and timeout
+    const searchResponse = await Promise.race([
+      searchPromise,
+      new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Search timeout: Web search took too long'));
+        }, SEARCH_TIMEOUT);
+      })
+    ]);
+
     const content = searchResponse.choices[0]?.message?.content;
     if (content) {
       console.log('[Edge Search] Search successful, response length:', content.length);
@@ -66,6 +79,12 @@ async function performSearch(query: string): Promise<string | null> {
     }
     return content || null;
   } catch (error: any) {
+    // Handle timeout errors specifically
+    if (error?.message?.includes('Search timeout')) {
+      console.error('[Edge Search] Search timeout after 15s - continuing without search');
+      return null; // Gracefully fail - user gets response without web search
+    }
+
     console.error('[Edge Search] Error performing search:', {
       message: error?.message,
       status: error?.status,
