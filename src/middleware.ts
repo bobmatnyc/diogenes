@@ -24,7 +24,9 @@ const isDevelopmentLocalhost = (req: NextRequest): boolean => {
 };
 
 // Define which routes should be protected by Clerk (in production)
-const isProtectedRoute = createRouteMatcher(['/chat(.*)', '/api/chat(.*)']);
+// NOTE: /api/chat is NOT protected here - it needs to work without authentication
+// The chat UI at /chat requires auth, but the API endpoint is public
+const isProtectedRoute = createRouteMatcher(['/chat(.*)']);
 
 // Routes that should completely bypass Clerk
 const shouldBypassClerk = (pathname: string, req: NextRequest): boolean => {
