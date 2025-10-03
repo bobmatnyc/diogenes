@@ -22,13 +22,24 @@ interface Message {
  */
 function shouldSearch(prompt: string): boolean {
   const searchKeywords = [
+    // Time-based keywords
     'current', 'today', 'latest', 'recent', 'news',
     'happening', '2024', '2025', 'update', 'now',
-    'what is', 'what are', "what's", 'trend',
     'breaking', 'yesterday', 'this week', 'this month',
-    'this year', 'real-time', 'live', 'ongoing'
+    'this year', 'real-time', 'live', 'ongoing',
+
+    // Question patterns
+    'what is', 'what are', "what's", 'trend',
+
+    // Global/world status keywords
+    'state of', 'world', 'global', 'worldwide', 'international',
+    'status of', 'situation', 'condition', 'affairs',
+
+    // Event/development keywords
+    'event', 'development', 'crisis', 'conflict', 'war',
+    'economy', 'market', 'stock', 'price'
   ];
-  
+
   const lowerPrompt = prompt.toLowerCase();
   return searchKeywords.some(keyword => lowerPrompt.includes(keyword));
 }
