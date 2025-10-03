@@ -69,6 +69,9 @@ export class MemoryService {
     prompt: string,
     userId: string
   ): Promise<PromptEnrichmentResult> {
+    console.log('[MemoryService] Starting prompt enrichment for user:', userId);
+    console.log('[MemoryService] Prompt length:', prompt.length, 'characters');
+
     try {
       // Get user memories (prioritize user and assistant memories)
       const filter: MemoryFilter = {
@@ -76,7 +79,10 @@ export class MemoryService {
       };
       const memories = await this.storage.getMemories(userId, 50, filter);
 
+      console.log('[MemoryService] Retrieved', memories.length, 'total memories for user');
+
       if (memories.length === 0) {
+        console.log('[MemoryService] No memories found - skipping enrichment');
         return {
           originalPrompt: prompt,
           enrichedContent: '',
@@ -123,6 +129,17 @@ export class MemoryService {
       const avgScore = scoredMemories.reduce((sum, item) => sum + item.score, 0) / (scoredMemories.length || 1);
       const confidenceScore = Math.min(avgScore / 10, 1); // Normalize to 0-1
 
+      console.log('[MemoryService] Found', relevantMemories.length, 'relevant memories');
+      console.log('[MemoryService] Average relevance score:', avgScore.toFixed(2));
+      console.log('[MemoryService] Confidence score:', confidenceScore.toFixed(2));
+
+      if (relevantMemories.length > 0) {
+        console.log('[MemoryService] Relevant memories:');
+        relevantMemories.forEach((m, i) => {
+          console.log(`  ${i + 1}. [${m.source}] ${m.content.substring(0, 100)}${m.content.length > 100 ? '...' : ''}`);
+        });
+      }
+
       // Create enrichment content (not visible to user)
       let enrichedContent = '';
       if (relevantMemories.length > 0) {
@@ -138,6 +155,8 @@ export class MemoryService {
           'Use this context naturally in your response without explicitly mentioning you remember it.',
           '[End Memory Context]\n'
         ].join('\n');
+
+        console.log('[MemoryService] Enrichment content length:', enrichedContent.length, 'characters');
       }
 
       return {
@@ -149,6 +168,10 @@ export class MemoryService {
       };
     } catch (error) {
       console.error('[MemoryService] Failed to enrich prompt:', error);
+      if (error instanceof Error) {
+        console.error('[MemoryService] Error details:', error.message);
+        console.error('[MemoryService] Error stack:', error.stack);
+      }
       return {
         originalPrompt: prompt,
         enrichedContent: '',

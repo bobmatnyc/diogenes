@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MemoryService } from '@/lib/kuzu/service';
 import type { Memory, MemoryFilter } from '@/lib/kuzu/types';
+import {
+  safeValidateCreateMemoryRequest,
+  safeValidateMemoryFilter
+} from '@/lib/kuzu/validation';
+import {
+  handleMemoryError,
+  MemoryAuthenticationError,
+  MemoryValidationError
+} from '@/lib/kuzu/errors';
 
 // Conditionally import Clerk for production
 let currentUser: any = null;
@@ -147,50 +156,45 @@ export async function POST(request: NextRequest) {
     } else {
       // In production on Vercel, authentication is REQUIRED
       if (!currentUser) {
-        return NextResponse.json(
-          { error: 'Authentication required', message: 'User must be logged in to save memories' },
-          { status: 401 }
-        );
+        throw new MemoryAuthenticationError('User must be logged in to save memories');
       }
 
       try {
         const user = await currentUser();
         if (!user?.id) {
-          return NextResponse.json(
-            { error: 'Authentication required', message: 'Valid user session required' },
-            { status: 401 }
-          );
+          throw new MemoryAuthenticationError('Valid user session required');
         }
         userId = user.id;
       } catch (error) {
+        if (error instanceof MemoryAuthenticationError) {
+          throw error;
+        }
         console.error('[Memory API POST] Clerk auth error:', error);
-        return NextResponse.json(
-          { error: 'Authentication failed', message: 'Unable to verify user authentication' },
-          { status: 401 }
-        );
+        throw new MemoryAuthenticationError('Unable to verify user authentication');
       }
     }
 
-    // Parse request body
+    // Parse and validate request body
     const body = await request.json();
-    const { content, metadata, source = 'user', type = 'semantic' } = body;
+    const validationResult = safeValidateCreateMemoryRequest(body);
 
-    if (!content || typeof content !== 'string') {
-      return NextResponse.json(
-        { error: 'Bad request', message: 'Content is required and must be a string' },
-        { status: 400 }
-      );
+    if (!validationResult.success) {
+      throw MemoryValidationError.fromZodError(validationResult.error);
     }
+
+    const { content, metadata, source, type, tags, importance } = validationResult.data;
 
     // Initialize memory service
     const memoryService = MemoryService.getInstance();
     await memoryService.initialize();
 
-    // Save the memory with source and type
+    // Save the memory with validated data
     await memoryService.saveMemory(userId, content, {
       ...metadata,
       source,
       type,
+      tags,
+      importance,
       createdVia: 'api',
     });
 
@@ -206,14 +210,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[Memory API] POST error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: 'Failed to save memory',
-        details: process.env.NODE_ENV === 'development' ? error : undefined,
-      },
-      { status: 500 }
-    );
+    return handleMemoryError(error);
   }
 }
 

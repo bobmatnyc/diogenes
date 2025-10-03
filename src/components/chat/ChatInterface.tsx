@@ -590,7 +590,7 @@ export default function ChatInterface() {
                   contextUsage.percent > 60 ? "text-yellow-600" :
                   "text-green-600"
                 )}>
-                  {contextUsage.percent}%
+                  {contextUsage.percent.toFixed(2)}%
                 </span>
               </div>
               <div className="h-2 bg-muted rounded-full overflow-hidden">

@@ -93,20 +93,39 @@ export async function POST(req: NextRequest) {
     let userId;
     let userEmail;
     let debugMode = false;
+
+    // CRITICAL FIX: Get userId from Clerk server-side auth (never trust client)
+    try {
+      const clerkUser = await currentUser();
+      if (clerkUser) {
+        userId = clerkUser.id;
+        userEmail = clerkUser.emailAddresses[0]?.emailAddress;
+        firstName = clerkUser.firstName || 'wanderer';
+        console.log('[Node Runtime] Authenticated user from Clerk:', userId);
+      } else {
+        console.log('[Node Runtime] No authenticated user - using defaults');
+      }
+    } catch (authError) {
+      console.error('[Node Runtime] Clerk auth error:', authError);
+      // Continue without auth - memory features will be disabled
+    }
+
     try {
       const body = await req.json();
       messages = body.messages;
-      firstName = body.firstName || 'wanderer'; // Default to 'wanderer' if no name provided
+      // Allow client to override firstName only if not set by Clerk
+      if (!firstName && body.firstName) {
+        firstName = body.firstName;
+      }
+      firstName = firstName || 'wanderer'; // Final fallback
       selectedModel = body.model || DEFAULT_MODEL; // Use selected model or default
       selectedPersonality = body.personality || 'executive'; // Default to 'executive' if no personality specified
-      userId = body.userId; // Clerk user ID
-      userEmail = body.userEmail;
       debugMode = body.debugMode === true;
       console.log('[Node Runtime] Received messages:', messages?.length || 0);
       console.log('[Node Runtime] User firstName:', firstName);
       console.log('[Node Runtime] Selected model:', selectedModel);
       console.log('[Node Runtime] Selected personality:', selectedPersonality);
-      if (userId) console.log('[Node Runtime] User ID:', userId);
+      if (userId) console.log('[Node Runtime] Authenticated User ID:', userId);
       if (debugMode) console.log('[Node Runtime] Debug mode enabled');
     } catch (parseError) {
       console.error('[Node Runtime] Failed to parse request body:', parseError);

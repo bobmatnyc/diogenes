@@ -5,12 +5,41 @@ import { BaseStorageAdapter } from './adapter';
 import type { StoredUserMemories } from '../types';
 
 /**
+ * Simple in-memory lock manager for file operations
+ */
+class LockManager {
+  private locks: Map<string, Promise<void>> = new Map();
+
+  async acquire(key: string): Promise<() => void> {
+    // Wait for any existing lock on this key
+    while (this.locks.has(key)) {
+      await this.locks.get(key);
+    }
+
+    // Create a new lock
+    let releaseLock: (() => void) | null = null;
+    const lockPromise = new Promise<void>(resolve => {
+      releaseLock = resolve;
+    });
+
+    this.locks.set(key, lockPromise);
+
+    // Return release function
+    return () => {
+      this.locks.delete(key);
+      if (releaseLock) releaseLock();
+    };
+  }
+}
+
+/**
  * Local filesystem storage adapter for memories
  */
 export class LocalStorageAdapter extends BaseStorageAdapter {
   private readonly basePath: string;
   private readonly maxMemoriesPerUser: number;
   private readonly ttlDays: number;
+  private readonly lockManager: LockManager;
 
   constructor(
     basePath = '.kuzu_memory',
@@ -21,6 +50,7 @@ export class LocalStorageAdapter extends BaseStorageAdapter {
     this.basePath = basePath;
     this.maxMemoriesPerUser = maxMemoriesPerUser;
     this.ttlDays = ttlDays;
+    this.lockManager = new LockManager();
   }
 
   async initialize(): Promise<void> {
@@ -35,16 +65,34 @@ export class LocalStorageAdapter extends BaseStorageAdapter {
 
   async saveMemory(userId: string, memory: Memory): Promise<void> {
     await this.ensureInitialized();
-    const memories = await this.getMemories(userId);
-    memories.push(memory);
-    await this.saveUserMemories(userId, memories);
+
+    // CRITICAL FIX: Use lock to prevent race conditions
+    const lockKey = `user:${userId}`;
+    const release = await this.lockManager.acquire(lockKey);
+
+    try {
+      const memories = await this.getMemories(userId);
+      memories.push(memory);
+      await this.saveUserMemories(userId, memories);
+    } finally {
+      release();
+    }
   }
 
   async saveMemories(userId: string, newMemories: Memory[]): Promise<void> {
     await this.ensureInitialized();
-    const existingMemories = await this.getMemories(userId);
-    const allMemories = [...existingMemories, ...newMemories];
-    await this.saveUserMemories(userId, allMemories);
+
+    // CRITICAL FIX: Use lock to prevent race conditions
+    const lockKey = `user:${userId}`;
+    const release = await this.lockManager.acquire(lockKey);
+
+    try {
+      const existingMemories = await this.getMemories(userId);
+      const allMemories = [...existingMemories, ...newMemories];
+      await this.saveUserMemories(userId, allMemories);
+    } finally {
+      release();
+    }
   }
 
   async getMemories(userId: string, limit?: number, filter?: MemoryFilter): Promise<Memory[]> {
@@ -307,7 +355,25 @@ export class LocalStorageAdapter extends BaseStorageAdapter {
       },
     };
 
-    // Write to file
-    await fs.writeFile(filePath, JSON.stringify(stored, null, 2), 'utf-8');
+    // CRITICAL FIX: Atomic file write to prevent race conditions
+    // Write to temp file first, then atomically rename
+    const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      // Write to temporary file
+      await fs.writeFile(tempPath, JSON.stringify(stored, null, 2), 'utf-8');
+
+      // Atomic rename - this is an atomic operation on most filesystems
+      // If another process is writing, one will win and the other will get ENOENT
+      await fs.rename(tempPath, filePath);
+    } catch (error) {
+      // Clean up temp file on error
+      try {
+        await fs.unlink(tempPath);
+      } catch {
+        // Ignore cleanup errors
+      }
+      throw error;
+    }
   }
 }
