@@ -6,7 +6,7 @@ export function getOpenRouterClient() {
   // CRITICAL: Use requireEnvVar to ONLY get value from .env files
   // This prevents shell environment from overriding .env.local
   const apiKey = requireEnvVar('OPENROUTER_API_KEY');
-  
+
   return new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: apiKey,
@@ -14,6 +14,10 @@ export function getOpenRouterClient() {
       'HTTP-Referer': getEnvVar('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
       'X-Title': 'Diogenes - The Contrarian AI',
     },
+    // Timeout configuration: 25 seconds with 5s buffer before Vercel's 30s limit
+    timeout: 25000,
+    // Automatic retry on connection failures
+    maxRetries: 2,
   });
 }
 

@@ -295,18 +295,51 @@ export async function POST(req: NextRequest) {
 
     // Create the streaming response with selected model
     console.log('[Node Runtime] Requesting streaming completion from:', selectedModel);
-    
+
     let response;
     try {
-      response = await openrouter.chat.completions.create({
+      // Add timeout wrapper to prevent exceeding Vercel's 30s function limit
+      const REQUEST_TIMEOUT = 25000; // 25 seconds with 5s buffer
+
+      const responsePromise = openrouter.chat.completions.create({
         model: selectedModel,
         messages: allMessages,
         temperature: 0.9,
         max_tokens: 1000,
         stream: true,
       });
+
+      // Race between the API call and timeout
+      response = await Promise.race([
+        responsePromise,
+        new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Request timeout: The AI model took too long to respond. Please try again with a shorter message or try again later.'));
+          }, REQUEST_TIMEOUT);
+        })
+      ]);
     } catch (apiError: any) {
       console.error('[Node Runtime] OpenRouter API error:', apiError);
+
+      // Handle timeout errors specifically
+      if (apiError?.message?.includes('Request timeout')) {
+        return new Response(
+          JSON.stringify({
+            error: 'Request timeout',
+            message: apiError.message,
+            type: 'TimeoutError',
+            timestamp: new Date().toISOString(),
+            suggestion: 'Try shortening your message or wait a moment before trying again.',
+          }),
+          {
+            status: 504,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+            },
+          },
+        );
+      }
       
       // Handle authentication errors specifically
       if (apiError?.status === 401 || apiError?.message?.includes('User not found')) {
