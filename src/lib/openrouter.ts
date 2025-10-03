@@ -22,8 +22,8 @@ export const openrouter = getOpenRouterClient();
 
 // Model configurations for different purposes
 export const MODELS = {
-  // Primary model: Claude 3.5 Sonnet for superior philosophical reasoning
-  CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet-20241022',
+  // Primary model: Claude Sonnet 4.5 for superior philosophical reasoning and coding
+  CLAUDE_SONNET: 'anthropic/claude-sonnet-4.5',
   
   // Additional primary models for user selection
   CLAUDE_OPUS: 'anthropic/claude-opus-4.1',
@@ -41,7 +41,7 @@ export const MODELS = {
 };
 
 // Default model for Diogenes responses
-export const DEFAULT_MODEL = MODELS.CLAUDE_OPUS;
+export const DEFAULT_MODEL = MODELS.CLAUDE_SONNET;
 
 export interface OpenRouterStreamOptions {
   messages: Array<{

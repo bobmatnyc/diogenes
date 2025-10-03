@@ -43,10 +43,10 @@ export interface AIModel {
 
 export const AVAILABLE_MODELS: AIModel[] = [
   {
-    id: 'anthropic/claude-3.5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet',
+    id: 'anthropic/claude-sonnet-4.5',
+    name: 'Claude Sonnet 4.5',
     provider: 'Anthropic',
-    description: 'Latest and most capable Claude model',
+    description: 'Latest and most capable Claude model - Best for coding and agents',
   },
   {
     id: 'openai/gpt-4o',
@@ -74,5 +74,5 @@ export const AVAILABLE_MODELS: AIModel[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'anthropic/claude-3.5-sonnet-20241022';
+export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-4.5';
 export const DEFAULT_MODEL = DEFAULT_MODEL_ID; // Alias for compatibility

@@ -3,8 +3,8 @@ import { getOpenRouterClient } from '@/lib/openrouter';
 
 // Model configurations for different agents
 export const DELEGATION_MODELS = {
-  // Claude 3.5 Sonnet for analysis and philosophical responses
-  CLAUDE_SONNET: 'anthropic/claude-3.5-sonnet-20241022',
+  // Claude Sonnet 4.5 for analysis and philosophical responses
+  CLAUDE_SONNET: 'anthropic/claude-sonnet-4.5',
   // Perplexity Sonar for web search - optimized for current information retrieval
   PERPLEXITY_SONAR: 'perplexity/sonar-pro',
   // Alternative: Perplexity Online for simpler searches
